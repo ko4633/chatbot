@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>부모님 말벗 테스트</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #f5f0e8;
+    font-family: 'Noto Sans KR', sans-serif;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .wrapper {
+    width: 100%;
+    max-width: 420px;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.12);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: 700px;
+  }
+
+  .header {
+    background: #FEE500;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .avatar {
+    width: 40px; height: 40px;
+    background: #3C1E1E;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+  }
+
+  .header-info h2 {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1a1a1a;
+  }
+
+  .header-info p {
+    font-size: 11px;
+    color: #666;
+  }
+
+  /* API 키 입력 */
+  .api-section {
+    background: #fff8e1;
+    padding: 12px 16px;
+    border-bottom: 1px solid #f0e0a0;
+    display: flex;
+    gap: 8px;
+  }
+
+  .api-section input {
+    flex: 1;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-family: monospace;
+    outline: none;
+  }
+
+  .api-section input:focus { border-color: #FEE500; }
+
+  .api-btn {
+    background: #3C1E1E;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    font-family: 'Noto Sans KR', sans-serif;
+  }
+
+  .api-status {
+    text-align: center;
+    font-size: 11px;
+    padding: 4px;
+    color: #888;
+  }
+
+  .api-status.ok { color: #2a5f3e; }
+  .api-status.err { color: #c8390a; }
+
+  /* 채팅 */
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background: #b2c7d9;
+  }
+
+  .msg {
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+  }
+
+  .msg.user { flex-direction: row-reverse; }
+
+  .bubble {
+    max-width: 75%;
+    padding: 10px 14px;
+    border-radius: 14px;
+    font-size: 14px;
+    line-height: 1.6;
+    word-break: break-word;
+  }
+
+  .msg.bot .bubble {
+    background: white;
+    color: #1a1a1a;
+    border-bottom-left-radius: 4px;
+  }
+
+  .msg.user .bubble {
+    background: #FEE500;
+    color: #1a1a1a;
+    border-bottom-right-radius: 4px;
+  }
+
+  .bot-avatar {
+    width: 32px; height: 32px;
+    background: #3C1E1E;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .typing {
+    display: flex;
+    gap: 4px;
+    padding: 12px 14px;
+    background: white;
+    border-radius: 14px;
+    border-bottom-left-radius: 4px;
+    width: fit-content;
+  }
+
+  .typing span {
+    width: 6px; height: 6px;
+    background: #aaa;
+    border-radius: 50%;
+    animation: bounce 1.2s infinite;
+  }
+
+  .typing span:nth-child(2) { animation-delay: 0.2s; }
+  .typing span:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes bounce {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-6px); }
+  }
+
+  /* 입력 */
+  .input-area {
+    padding: 12px 16px;
+    background: #f8f8f8;
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+    border-top: 1px solid #eee;
+  }
+
+  .input-area textarea {
+    flex: 1;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-family: 'Noto Sans KR', sans-serif;
+    resize: none;
+    max-height: 100px;
+    outline: none;
+    line-height: 1.5;
+  }
+
+  .input-area textarea:focus { border-color: #FEE500; }
+
+  .send-btn {
+    width: 40px; height: 40px;
+    background: #FEE500;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.15s;
+  }
+
+  .send-btn:hover { background: #f0d800; }
+  .send-btn:disabled { background: #eee; cursor: not-allowed; }
+
+  /* 성격 선택 */
+  .persona-bar {
+    padding: 8px 16px;
+    background: #f0f0f0;
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    border-bottom: 1px solid #e0e0e0;
+  }
+
+  .persona-btn {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 11px;
+    cursor: pointer;
+    white-space: nowrap;
+    font-family: 'Noto Sans KR', sans-serif;
+    transition: all 0.15s;
+  }
+
+  .persona-btn.active {
+    background: #3C1E1E;
+    color: white;
+    border-color: #3C1E1E;
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- 헤더 -->
+  <div class="header">
+    <div class="avatar">🐱</div>
+    <div class="header-info">
+      <h2>창혁이 말벗봇</h2>
+      <p>부모님 테스트용</p>
+    </div>
+  </div>
+
+  <!-- API 키 입력 -->
+  <div class="api-section">
+    <input type="password" id="apiKey" placeholder="sk-ant-api03-... API 키 붙여넣기" />
+    <button class="api-btn" onclick="setKey()">연결</button>
+  </div>
+  <div class="api-status" id="apiStatus">API 키를 입력하면 대화 시작됩니다</div>
+
+  <!-- 성격 선택 -->
+  <div class="persona-bar">
+    <button class="persona-btn active" onclick="setPersona(this, 'son')">👦 아들 말투</button>
+    <button class="persona-btn" onclick="setPersona(this, 'friend')">😊 친근한 친구</button>
+    <button class="persona-btn" onclick="setPersona(this, 'formal')">🎩 정중한 도우미</button>
+    <button class="persona-btn" onclick="setPersona(this, 'grandson')">👶 손주 말투</button>
+  </div>
+
+  <!-- 메시지 -->
+  <div class="messages" id="messages">
+    <div class="msg bot">
+      <div class="bot-avatar">🐱</div>
+      <div class="bubble">안녕하세요 어머니~ 오늘 하루 어떠셨어요? 😊</div>
+    </div>
+  </div>
+
+  <!-- 입력 -->
+  <div class="input-area">
+    <textarea id="userInput" placeholder="메시지 입력..." rows="1"
+      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"
+      oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
+    <button class="send-btn" id="sendBtn" onclick="sendMsg()">➤</button>
+  </div>
+
+</div>
+
+<script>
+let apiKey = '';
+let history = [];
+let currentPersona = 'son';
+
+const personas = {
+  son: `당신은 창혁이라는 30대 경상도 아들입니다. 부모님(58년생 아버지, 60년생 어머니)과 카카오톡으로 대화합니다.
+경상도 사투리를 자연스럽게 쓰세요. 예: "어예~", "머하노~", "밥은 묵었나~", "아이고~", "와~", "그카면 안되지~", "맞다 아이가~", "니 요새 어떻노~"
+따뜻하고 살가운 경상도 아들 말투로, 이모지도 가끔 쓰세요.
+답변은 2~3문장 이내로 짧고 자연스럽게.`,
+
+  friend: `당신은 60대 어르신의 친근한 경상도 친구입니다.
+"야~", "인자~", "와 그라노~", "맞제~" 같은 경상도 사투리로 편하게 대화하세요.
+짧고 따뜻하게 답하세요.`,
+
+  formal: `당신은 어르신을 위한 정중한 AI 도우미입니다. 
+존댓말을 쓰고 친절하게 안내해드리세요. 어려운 단어는 피하고 쉽게 설명해주세요.`,
+
+  grandson: `당신은 경상도 손주입니다. 할머니 할아버지께 귀엽고 사랑스럽게 대화하세요.
+"할매~", "할배~", "머하고 계시노~", "보고 싶다 아이가~" 같은 경상도 손주 말투로 밝게 대화하세요. 짧게 답하세요.`
+};
+
+function setKey() {
+  const input = document.getElementById('apiKey').value.trim();
+  const status = document.getElementById('apiStatus');
+  if (!input.startsWith('sk-ant-')) {
+    status.textContent = '❌ 올바른 API 키가 아니에요 (sk-ant-로 시작해야 함)';
+    status.className = 'api-status err';
+    return;
+  }
+  apiKey = input;
+  status.textContent = '✅ 연결됐어요! 이제 대화해보세요';
+  status.className = 'api-status ok';
+  document.getElementById('apiKey').value = '●●●●●●●●●●●●';
+}
+
+function setPersona(btn, persona) {
+  document.querySelectorAll('.persona-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentPersona = persona;
+  history = [];
+  const msgs = document.getElementById('messages');
+  msgs.innerHTML = '<div class="msg bot"><div class="bot-avatar">🐱</div><div class="bubble">안녕하세요~ 말투를 바꿨어요 😊 다시 대화해볼까요?</div></div>';
+}
+
+async function sendMsg() {
+  const input = document.getElementById('userInput');
+  const text = input.value.trim();
+  if (!text) return;
+  if (!apiKey) {
+    alert('먼저 API 키를 입력하고 연결 버튼을 눌러주세요!');
+    return;
+  }
+
+  // 유저 메시지
+  addMsg('user', text);
+  input.value = '';
+  input.style.height = 'auto';
+  history.push({ role: 'user', content: text });
+
+  // 타이핑 표시
+  const typingId = addTyping();
+  document.getElementById('sendBtn').disabled = true;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 300,
+        system: personas[currentPersona],
+        messages: history
+      })
+    });
+
+    const data = await res.json();
+    removeTyping(typingId);
+
+    if (data.error) {
+      addMsg('bot', '❌ 오류: ' + data.error.message);
+      history.pop();
+    } else {
+      const reply = data.content[0].text;
+      addMsg('bot', reply);
+      history.push({ role: 'assistant', content: reply });
+    }
+  } catch (e) {
+    removeTyping(typingId);
+    addMsg('bot', '❌ 연결 오류가 났어요. API 키 확인해주세요.');
+    history.pop();
+  }
+
+  document.getElementById('sendBtn').disabled = false;
+}
+
+function addMsg(role, text) {
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+  div.innerHTML = role === 'bot'
+    ? `<div class="bot-avatar">🐱</div><div class="bubble">${text.replace(/\n/g,'<br>')}</div>`
+    : `<div class="bubble">${text.replace(/\n/g,'<br>')}</div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function addTyping() {
+  const msgs = document.getElementById('messages');
+  const id = 'typing-' + Date.now();
+  const div = document.createElement('div');
+  div.className = 'msg bot';
+  div.id = id;
+  div.innerHTML = `<div class="bot-avatar">🐱</div><div class="typing"><span></span><span></span><span></span></div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return id;
+}
+
+function removeTyping(id) {
+  const el = document.getElementById(id);
+  if (el) el.remove();
+}
+</script>
+</body>
+</html>
