@@ -363,7 +363,12 @@ async function sendMsg() {
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 300,
@@ -375,8 +380,8 @@ async function sendMsg() {
     const data = await res.json();
     removeTyping(typingId);
 
-    if (data.error) {
-      addMsg('bot', '❌ 오류: ' + data.error.message);
+    if (!res.ok || data.error) {
+      addMsg('bot', '❌ 오류: ' + (data.error ? data.error.message : res.status));
       history.pop();
     } else {
       const reply = data.content[0].text;
