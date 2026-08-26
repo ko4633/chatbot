@@ -1,0 +1,44 @@
+# Golden dataset for entity-resolution evaluation (docs/EVALUATION.md §2).
+# Listing URLs are the fixture "natural keys" from
+# packages/collectors/fixtures/data/{japan,korea}_marketplace.json.
+#
+# Labels:
+#   SAME_PRODUCT      -> must resolve to EXACT or LIKELY and merge into one Product
+#   VARIANT           -> related but distinct SKU; must NOT merge
+#   DIFFERENT_PRODUCT -> must resolve to REJECTED
+#   UNKNOWN           -> insufficient evidence; must stay POSSIBLE/UNKNOWN, never forced
+pairs:
+  - left: "fixture://jp-marketplace/item/jp-001"
+    right: "fixture://kr-marketplace/products/kr-001"
+    label: SAME_PRODUCT
+    note: "OLFA 43B leather knife — shared JAN"
+
+  - left: "fixture://jp-marketplace/item/jp-002"
+    right: "fixture://kr-marketplace/products/kr-003"
+    label: SAME_PRODUCT
+    note: "THERMOS JNL-450 — matched via model_number, no shared JAN"
+
+  - left: "fixture://jp-marketplace/item/jp-002"
+    right: "fixture://jp-marketplace/item/jp-003"
+    label: VARIANT
+    note: "THERMOS JNL-450 vs JNL-481 — related family, different SKU, must not merge"
+
+  - left: "fixture://jp-marketplace/item/jp-003"
+    right: "fixture://kr-marketplace/products/kr-006"
+    label: SAME_PRODUCT
+    note: "THERMOS JNL-481 — matched via model_number"
+
+  - left: "fixture://jp-marketplace/item/jp-001"
+    right: "fixture://jp-marketplace/item/jp-004"
+    label: DIFFERENT_PRODUCT
+    note: "OLFA 43B leather knife vs OLFA L-type cutter — same brand, different JAN"
+
+  - left: "fixture://kr-marketplace/products/kr-001"
+    right: "fixture://kr-marketplace/products/kr-007"
+    label: DIFFERENT_PRODUCT
+    note: "Same pair as above, KR-side listings"
+
+  - left: "fixture://jp-marketplace/item/jp-005"
+    right: "fixture://kr-marketplace/products/kr-008"
+    label: UNKNOWN
+    note: "Generic kitchen scissors, no brand/model/identifier on either side"

@@ -1,0 +1,23 @@
+# Shared image for apps/api and apps/worker — same codebase, different
+# entrypoint command (see docker-compose.yml). Keeping one Dockerfile avoids
+# two copies of the same dependency-install layer drifting apart.
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# psycopg[binary] needs libpq at runtime on slim images.
+RUN apt-get update && apt-get install -y --no-install-recommends libpq5 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY pyproject.toml ./
+COPY packages ./packages
+COPY apps/api ./apps/api
+COPY apps/worker ./apps/worker
+COPY config ./config
+
+RUN pip install --no-cache-dir -e .
+
+ENV PYTHONUNBUFFERED=1
+
+# Overridden per-service in docker-compose.yml.
+CMD ["uvicorn", "apps.api.main:app", "--host", "0.0.0.0", "--port", "8000"]

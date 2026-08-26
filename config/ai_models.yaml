@@ -1,0 +1,16 @@
+# Maps a cost/capability tier to an actual model id per provider.
+# See docs/AI_POLICY.md §7 — task purposes are assigned a tier, not "always
+# the best model available". Override with real model ids you have access
+# to; these are not guaranteed to be currently-available model names.
+anthropic:
+  cheap: "claude-haiku-4-5-20251001"
+  standard: "claude-sonnet-5"
+  premium: "claude-opus-5"
+
+# Per-cost-per-token estimates in USD, used only to populate
+# ai_run.estimated_cost_usd for tracking (docs/AI_POLICY.md §7). Approximate
+# and configurable — not a billing source of truth.
+pricing_usd_per_1k_tokens:
+  claude-haiku-4-5-20251001: { input: 0.001, output: 0.005 }
+  claude-sonnet-5: { input: 0.003, output: 0.015 }
+  claude-opus-5: { input: 0.015, output: 0.075 }
