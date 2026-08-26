@@ -1,0 +1,19 @@
+{
+  "name": "coupang-uploader",
+  "version": "1.0.0",
+  "description": "쿠팡윙 Open API를 이용한 상품 자동업로드 프로그램",
+  "private": true,
+  "type": "commonjs",
+  "main": "upload.js",
+  "scripts": {
+    "template": "node generate-template.js",
+    "upload": "node upload.js",
+    "upload:live": "node upload.js --live"
+  },
+  "dependencies": {
+    "axios": "^1.7.7",
+    "dayjs": "^1.11.13",
+    "dotenv": "^16.4.5",
+    "xlsx": "^0.18.5"
+  }
+}
