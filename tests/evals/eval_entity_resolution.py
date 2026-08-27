@@ -61,7 +61,7 @@ def run_eval(db: Session, tmp_path: str) -> EvalResult:
     run_collector(db, KoreaMarketplaceProvider(), store)
     db.commit()
 
-    golden = yaml.safe_load(GOLDEN_PATH.read_text())["pairs"]
+    golden = yaml.safe_load(GOLDEN_PATH.read_text(encoding="utf-8"))["pairs"]
     ai_provider = NullAIProvider()
 
     true_positives = false_positives = false_negatives = true_negatives = 0

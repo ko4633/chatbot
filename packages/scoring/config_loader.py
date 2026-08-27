@@ -10,13 +10,13 @@ CONFIG_DIR = Path(__file__).resolve().parents[2] / "config"
 
 @lru_cache
 def load_margin_assumptions() -> dict:
-    with (CONFIG_DIR / "margin_assumptions.yaml").open() as f:
+    with (CONFIG_DIR / "margin_assumptions.yaml").open(encoding="utf-8") as f:
         return yaml.safe_load(f)
 
 
 @lru_cache
 def load_opportunity_weights() -> dict:
-    with (CONFIG_DIR / "opportunity_weights.yaml").open() as f:
+    with (CONFIG_DIR / "opportunity_weights.yaml").open(encoding="utf-8") as f:
         config = yaml.safe_load(f)
     total = sum(config["weights"].values())
     if abs(total - 1.0) > 1e-6:

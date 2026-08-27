@@ -13,7 +13,7 @@ CONFIG_PATH = Path(__file__).resolve().parents[2] / "config" / "ai_models.yaml"
 
 @lru_cache
 def load_ai_model_config() -> dict:
-    with CONFIG_PATH.open() as f:
+    with CONFIG_PATH.open(encoding="utf-8") as f:
         return yaml.safe_load(f)
 
 
