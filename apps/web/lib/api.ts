@@ -1,4 +1,9 @@
-import type { OpportunityDetail, OpportunityListResponse, UserDecisionItem } from "./types";
+import type {
+  OpportunityDetail,
+  OpportunityHistoryResponse,
+  OpportunityListResponse,
+  UserDecisionItem,
+} from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
@@ -37,6 +42,10 @@ export function fetchOpportunities(filters: OpportunityFilters): Promise<Opportu
 
 export function fetchOpportunityDetail(id: string): Promise<OpportunityDetail> {
   return apiFetch<OpportunityDetail>(`/opportunities/${id}`);
+}
+
+export function fetchOpportunityHistory(id: string): Promise<OpportunityHistoryResponse> {
+  return apiFetch<OpportunityHistoryResponse>(`/opportunities/${id}/history`);
 }
 
 export function postDecision(

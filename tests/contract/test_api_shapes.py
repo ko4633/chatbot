@@ -26,6 +26,7 @@ REQUIRED_LIST_ITEM_FIELDS = {
     "kr_seller_count",
     "status",
     "is_mock",
+    "data_mode",
     "created_at",
 }
 
@@ -54,6 +55,8 @@ REQUIRED_DETAIL_FIELDS = {
     "sources",
     "decisions",
     "is_mock",
+    "data_mode",
+    "latest_forecast",
 }
 
 
@@ -75,6 +78,32 @@ def test_health_endpoint_shape(seeded_client: TestClient):
     assert r.status_code == 200
     body = r.json()
     assert {"status", "database", "ai_enabled", "environment"} <= body.keys()
+
+
+def test_health_dashboard_shape(seeded_client: TestClient):
+    r = seeded_client.get("/health/dashboard")
+    assert r.status_code == 200
+    body = r.json()
+    assert {
+        "status",
+        "environment",
+        "database",
+        "redis",
+        "raw_store",
+        "fx",
+        "collectors",
+        "ai",
+        "telegram",
+        "data_mode",
+    } <= body.keys()
+    assert body["database"] == "ok"
+    assert body["data_mode"] == "mock"
+    assert body["fx"]["is_stale"] is False
+    assert len(body["collectors"]) >= 2
+    for c in body["collectors"]:
+        assert {"name", "data_mode", "data_quality_status", "usable_for_opportunities"} <= c.keys()
+        assert c["data_quality_status"] == "HEALTHY"
+        assert c["usable_for_opportunities"] is True
 
 
 def test_opportunity_list_shape_and_data_mode_header(seeded_client: TestClient):
@@ -115,7 +144,59 @@ def test_opportunity_detail_shape(seeded_client: TestClient):
     opp_id = list_body["items"][0]["id"]
     r = seeded_client.get(f"/opportunities/{opp_id}")
     assert r.status_code == 200
-    assert REQUIRED_DETAIL_FIELDS <= r.json().keys()
+    body = r.json()
+    assert REQUIRED_DETAIL_FIELDS <= body.keys()
+    # docs/ADR/0009: never a fabricated probability, never claimed calibrated.
+    assert body["latest_forecast"] is not None
+    assert body["latest_forecast"]["predicted_probability"] is None
+    assert body["latest_forecast"]["is_calibrated"] is False
+
+
+def test_opportunity_history_shape_and_point_in_time_filter(seeded_client: TestClient):
+    list_body = seeded_client.get("/opportunities").json()
+    opp_id = list_body["items"][0]["id"]
+
+    full = seeded_client.get(f"/opportunities/{opp_id}/history")
+    assert full.status_code == 200
+    body = full.json()
+    assert body["as_of"] is None
+    assert body["current"] is None
+    assert len(body["points"]) >= 1
+    point = body["points"][0]
+    assert {
+        "opportunity_id",
+        "analysis_run_id",
+        "status",
+        "opportunity_score",
+        "confidence_score",
+        "contribution_margin_krw",
+        "jpy_krw_fx",
+        "created_at",
+    } <= point.keys()
+
+    # A far-future as_of must include every point recorded so far and set
+    # "current" to the most recent one (docs/MASTER_SPEC.md §6).
+    future = seeded_client.get(
+        f"/opportunities/{opp_id}/history", params={"as_of": "2099-01-01T00:00:00Z"}
+    )
+    assert future.status_code == 200
+    future_body = future.json()
+    assert future_body["as_of"] is not None
+    assert future_body["current"] is not None
+    assert len(future_body["points"]) == len(body["points"])
+
+    # A far-past as_of must reconstruct "nothing existed yet".
+    past = seeded_client.get(
+        f"/opportunities/{opp_id}/history", params={"as_of": "2000-01-01T00:00:00Z"}
+    )
+    past_body = past.json()
+    assert past_body["points"] == []
+    assert past_body["current"] is None
+
+
+def test_opportunity_history_404_for_unknown_id(seeded_client: TestClient):
+    r = seeded_client.get("/opportunities/00000000-0000-0000-0000-000000000000/history")
+    assert r.status_code == 404
 
 
 def test_opportunity_detail_404_for_unknown_id(seeded_client: TestClient):

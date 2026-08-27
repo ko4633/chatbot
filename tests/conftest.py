@@ -15,6 +15,8 @@ from packages.db.base import get_session_factory
 ALL_TABLES_NEWEST_FIRST = [
     "ai_run",
     "event",
+    "forecast",
+    "fx_observation",
     "insight",
     "opportunity",
     "user_decision",

@@ -18,6 +18,7 @@ from packages.collectors.base import Collector
 from packages.collectors.storage import RawObjectStore
 from packages.collectors.types import NormalizedListing
 from packages.db.enums import (
+    DataMode,
     ExtractionMethod,
     MarketplaceType,
     ReliabilityLevel,
@@ -65,6 +66,7 @@ def get_or_create_source(db: Session, collector: Collector) -> Source:
         base_url=None,
         is_mock=collector.is_mock,
         is_active=True,
+        data_mode=DataMode.MOCK if collector.is_mock else DataMode.LIVE,
     )
     db.add(source)
     db.flush()

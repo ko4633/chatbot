@@ -33,6 +33,13 @@ packages/
                   orchestrates entities/scoring/ai but contains no scoring math
                   itself
   observability/  structured logging helpers, run/request id propagation
+  fx/             (Phase 2) FXProvider interface + adapters (Manual, Frankfurter/
+                  Null-equivalent). Mirrors packages/ai's adapter shape — the
+                  only place that decides where an FX rate comes from.
+  telegram/       (Phase 2) TelegramAdapter interface + adapters (HTTP, Null).
+                  Outbound-only: formats/sends messages and answers personal-bot
+                  commands by querying the same tables apps/api queries — never
+                  a second business-logic path. See ADR-0010.
 ```
 
 Rule: `packages/core` and `packages/db` may be imported by anything. Every
@@ -57,6 +64,11 @@ Collector.parse() → structured dict
       ▼
 Collector.normalize() → Observation rows (Price/Inventory/Review/Demand)
       │  (Source + SourceSnapshot provenance attached to every row)
+      │  Source.data_quality_status reassessed after each collector run
+      │  (packages/collectors/quality.py) — FAILED/QUARANTINED sources are
+      │  excluded from the Opportunity calculation below (Phase 2)
+      ▼
+FX ingest (packages/fx) → FXObservation rows, then FX_MOVE event detection
       ▼
 Entity Resolution (packages/entities)
       │  produces EntityMatch rows, may create/merge Product
@@ -64,17 +76,22 @@ Entity Resolution (packages/entities)
 Intelligence pipeline (packages/intelligence), one AnalysisRun per invocation
       │
       ├─ Event detection (compare current vs prior observation → Event)
-      ├─ Margin + Opportunity scoring (packages/scoring, deterministic)
-      ├─ Confidence scoring (packages/scoring, deterministic)
+      ├─ Margin + Opportunity scoring (packages/scoring, deterministic,
+      │  FX rate flows in explicitly — never a static config value)
+      ├─ Confidence scoring (packages/scoring, deterministic; penalizes stale FX)
+      ├─ Forecast direction classification (packages/scoring, deterministic;
+      │  never a fabricated probability — ADR-0009)
       └─ Insight/Opportunity narrative (packages/ai, optional, labeled AI-generated)
       ▼
-Opportunity + Insight + Event rows persisted
+Opportunity + Insight + Event + Forecast rows persisted
       │
+      ├─ Telegram broadcast of new high-score Opportunities (packages/telegram,
+      │  opt-in, disabled by default — ADR-0010)
       ▼
 apps/api serves them to apps/web
       │
       ▼
-User records UserDecision
+User records UserDecision (or queries the Telegram personal bot, same data)
 ```
 
 Every arrow above is inspectable: every row created carries either a direct
@@ -131,7 +148,7 @@ is never silently skipped in a way that looks like a real check happened.
 ```
 omnis (repo root)
 ├── apps/{api,worker,web}
-├── packages/{core,db,ai,collectors,entities,scoring,intelligence,observability}
+├── packages/{core,db,ai,collectors,entities,scoring,intelligence,observability,fx,telegram}
 ├── infra/                  docker init scripts (postgres init sql, minio bucket setup)
 ├── tests/{unit,integration,contract,fixtures,evals}
 ├── docs/ (+ ADR/)
@@ -262,4 +279,76 @@ this and renders a persistent "MOCK DATA" badge on every screen that shows
 data from a mock source; `apps/api` also sets a response header
 (`X-Omnis-Data-Mode: mock|live|mixed`) computed from the sources actually
 touched by that response, so this can never be missed by only checking one
-code path.
+code path. Phase 2 adds the explicit `data_mode` enum (MOCK/LIVE/MANUAL,
+ADR-0007) alongside `is_mock` — `packages/intelligence/system_status.py`
+computes the rollup once, shared by `/opportunities` and
+`/health/dashboard` rather than duplicated per router.
+
+## 7. FX and Telegram Adapters (Phase 2)
+
+Both mirror §3's `AIProvider` pattern exactly — one interface, a Null/Manual
+default that requires no external key, and a real adapter that is opt-in:
+
+```python
+class FXProvider(Protocol):
+    def get_latest(self, base: str, quote: str) -> FXRateResult: ...
+    def get_historical(self, base: str, quote: str, as_of: date) -> FXRateResult: ...
+
+class TelegramAdapter(Protocol):
+    def send_message(self, chat_id: str, text: str) -> TelegramSendResult: ...
+    def get_updates(self, offset: int | None, timeout_seconds: int) -> list[dict]: ...
+```
+
+`ManualFXProvider` (default) reads `config/fx_rates.yaml` — zero external
+dependency, same "must boot without a key" guarantee as `NullAIProvider`.
+`FrankfurterFXProvider` (opt-in via `FX_PROVIDER=frankfurter`) calls the
+real, long-documented `api.frankfurter.dev` — its exact current response
+shape could not be network-verified from the development sandbox (outbound
+policy blocked it, same as it blocked Docker Hub during Phase 1), so it is
+implemented against training-data knowledge of a stable public contract but
+deliberately not the default; see ADR-0006 and
+`docs/LIVE_SOURCE_RESEARCH.md`.
+
+`NullTelegramAdapter` (default) logs what would have been sent instead of
+calling the network. `HTTPTelegramAdapter` (opt-in, requires
+`TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID`) calls the real, stable, official
+Telegram Bot API — same "network access could not be verified from this
+sandbox" caveat as Frankfurter applies here too (see ADR-0010). The
+`packages/telegram/commands.py` personal-bot handlers query the exact same
+tables/filters `apps/api`'s routers use, by design: there is exactly one
+place "top opportunities" or "why was this recommended" is computed, so the
+bot and the website can never disagree.
+
+**Data Quality Monitor (Phase 2)**: `Source.data_quality_status`
+(HEALTHY/DEGRADED/STALE/QUARANTINED/FAILED) is recomputed after every
+collector run by comparing this run's yield against the same collector's
+previous run (`packages/collectors/quality.py`) — catching a collector that
+returns 200 OK but degraded data, not just an outright fetch failure.
+FAILED/QUARANTINED sources are excluded from `build_opportunities`, so one
+degraded marketplace connector cannot silently corrupt every Opportunity
+that happens to reference it. Content-level anomaly detection (e.g. "this
+run's average price is wildly different from history") is **not**
+implemented yet — yield-drop detection only; see the Phase 2 BUILD STATUS
+report's Known Risks for what this does not yet catch.
+
+**Health Dashboard (Phase 2)**: `GET /health/dashboard` performs a live
+probe of every dependency (DB, Redis, raw object store, FX freshness,
+per-collector data quality, AI/Telegram configuration, Live-vs-Mock
+rollup) rather than reporting a cached or assumed status — each check
+either succeeds or reports its own error string, so the dashboard itself
+never crashes because one dependency is down.
+
+**Telegram token exposure risk**: `TELEGRAM_BOT_TOKEN` is read only by
+`packages/core/settings.py` server-side, same as `ANTHROPIC_API_KEY` — it
+never reaches `apps/web`, and `packages/observability/redact.py`'s existing
+`*token*` pattern match already redacts it from structured logs with no
+code change needed. `tests/unit/test_no_secret_exposed_to_frontend.py`
+statically greps `apps/web` for secret-shaped `NEXT_PUBLIC_*` variables and
+for the literal token/key env var names, as a regression guard.
+
+**Forecast fabrication risk**: The single most tempting shortcut in a
+"forecast" feature is inventing a probability number because it looks more
+impressive than a qualitative label. `packages/scoring/forecast.py` has no
+code path that can produce `predicted_probability` — the field is
+hardcoded `None` at the call site in `opportunity_builder.py`, and
+`is_calibrated` is hardcoded `False`. See ADR-0009.

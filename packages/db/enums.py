@@ -105,6 +105,7 @@ class EventEntityType(enum.StrEnum):
     PRODUCT_VARIANT = "PRODUCT_VARIANT"
     OFFER = "OFFER"
     SELLER = "SELLER"
+    FX_PAIR = "FX_PAIR"
 
 
 class EventType(enum.StrEnum):
@@ -117,6 +118,9 @@ class EventType(enum.StrEnum):
     NEW_PRODUCT = "NEW_PRODUCT"
     REVIEW_ACCELERATION = "REVIEW_ACCELERATION"
     OPPORTUNITY_SCORE_CHANGE = "OPPORTUNITY_SCORE_CHANGE"
+    FX_MOVE = "FX_MOVE"
+    MARGIN_THRESHOLD_CROSSED = "MARGIN_THRESHOLD_CROSSED"
+    FX_DRIVEN_OPPORTUNITY = "FX_DRIVEN_OPPORTUNITY"
 
 
 class OpportunityType(enum.StrEnum):
@@ -172,6 +176,9 @@ class AIRunPurpose(enum.StrEnum):
     OPPORTUNITY_NARRATIVE = "OPPORTUNITY_NARRATIVE"
     COUNTER_ARGUMENT = "COUNTER_ARGUMENT"
     EMBEDDING = "EMBEDDING"
+    THESIS = "THESIS"
+    COUNTERTHESIS = "COUNTERTHESIS"
+    MISSING_DATA_ANALYSIS = "MISSING_DATA_ANALYSIS"
 
 
 class AIRunStatus(enum.StrEnum):
@@ -184,3 +191,47 @@ class DemandMetricType(enum.StrEnum):
     SEARCH_INTEREST = "SEARCH_INTEREST"
     REVIEW_VELOCITY = "REVIEW_VELOCITY"
     MANUAL_ESTIMATE = "MANUAL_ESTIMATE"
+
+
+class DataMode(enum.StrEnum):
+    """See docs/ADR/0007-explicit-data-mode-field.md."""
+
+    MOCK = "MOCK"
+    LIVE = "LIVE"
+    MANUAL = "MANUAL"
+
+
+class InsightKind(enum.StrEnum):
+    """See docs/ADR/0008-insight-kind-enum.md."""
+
+    WHY_NOW = "WHY_NOW"
+    COUNTER_ARGUMENT = "COUNTER_ARGUMENT"
+    THESIS = "THESIS"
+    COUNTERTHESIS = "COUNTERTHESIS"
+    MISSING_DATA = "MISSING_DATA"
+    RECOMMENDATION = "RECOMMENDATION"
+
+
+class ForecastDirection(enum.StrEnum):
+    """See docs/ADR/0009-forecast-no-fabricated-probability.md. Qualitative
+    only — no fabricated probability is ever attached to these in Phase 2."""
+
+    BULLISH = "BULLISH"
+    NEUTRAL = "NEUTRAL"
+    BEARISH = "BEARISH"
+
+
+class ConfidenceTier(enum.StrEnum):
+    LOW = "LOW"
+    MEDIUM = "MEDIUM"
+    HIGH = "HIGH"
+
+
+class DataQualityStatus(enum.StrEnum):
+    """See docs/MASTER_SPEC.md §26 (product brief) / docs/RUNBOOK.md."""
+
+    HEALTHY = "HEALTHY"
+    DEGRADED = "DEGRADED"
+    STALE = "STALE"
+    QUARANTINED = "QUARANTINED"
+    FAILED = "FAILED"

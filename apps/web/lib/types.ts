@@ -15,6 +15,7 @@ export interface OpportunityListItem {
   kr_seller_count: number;
   status: string;
   is_mock: boolean;
+  data_mode: "MOCK" | "LIVE" | "MANUAL";
   created_at: string;
 }
 
@@ -66,6 +67,7 @@ export interface EventItem {
 
 export interface InsightItem {
   id: string;
+  kind: string;
   title: string;
   narrative: string;
   is_ai_generated: boolean;
@@ -80,7 +82,39 @@ export interface SourceRef {
   factual_reliability: string;
   signal_value: string;
   is_mock: boolean;
+  data_mode: "MOCK" | "LIVE" | "MANUAL";
   base_url: string | null;
+}
+
+export interface OpportunityHistoryPoint {
+  opportunity_id: string;
+  analysis_run_id: string;
+  status: string;
+  opportunity_score: number;
+  confidence_score: number;
+  contribution_margin_krw: number | null;
+  jpy_krw_fx: number | null;
+  japan_purchase_price_jpy: number | null;
+  korea_sale_price_krw: number | null;
+  created_at: string;
+}
+
+export interface OpportunityHistoryResponse {
+  product_id: string;
+  as_of: string | null;
+  points: OpportunityHistoryPoint[];
+  current: OpportunityHistoryPoint | null;
+}
+
+export interface ForecastItem {
+  id: string;
+  predicted_direction: "BULLISH" | "NEUTRAL" | "BEARISH";
+  predicted_probability: number | null;
+  confidence_tier: "LOW" | "MEDIUM" | "HIGH";
+  is_calibrated: boolean;
+  forecast_horizon_days: number;
+  evidence: Record<string, unknown>;
+  created_at: string;
 }
 
 export interface UserDecisionItem {
@@ -103,7 +137,7 @@ export interface OpportunityDetail {
     confidence_components: Record<string, number>;
   };
   weights_version: string;
-  economics: Record<string, number | string>;
+  economics: Record<string, number | string | boolean | Record<string, number>>;
   regulation_status: string;
   regulation_basis: string | null;
   status: string;
@@ -119,4 +153,6 @@ export interface OpportunityDetail {
   sources: SourceRef[];
   decisions: UserDecisionItem[];
   is_mock: boolean;
+  data_mode: "MOCK" | "LIVE" | "MANUAL";
+  latest_forecast: ForecastItem | null;
 }

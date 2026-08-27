@@ -48,3 +48,25 @@ def test_missing_fields_reduce_confidence():
 def test_score_bounded_0_to_100():
     result = compute_confidence(_inputs())
     assert 0.0 <= result.score <= 100.0
+
+
+def test_stale_fx_reduces_confidence():
+    # product brief §9: a stale FX rate means the margin/economics computed
+    # from it may no longer be trustworthy, independent of how fresh the
+    # underlying product-price observations are.
+    fresh_fx = compute_confidence(_inputs(fx_is_stale=False))
+    stale_fx = compute_confidence(_inputs(fx_is_stale=True))
+    assert fresh_fx.score > stale_fx.score
+
+
+def test_fx_is_stale_defaults_to_false():
+    inputs = ConfidenceInputs(
+        distinct_source_count=2,
+        average_source_reliability="MEDIUM",
+        most_recent_observed_at=utcnow(),
+        entity_match_type=MatchType.EXACT,
+        missing_field_count=0,
+        total_relevant_field_count=5,
+        ai_assisted_match=False,
+    )
+    assert inputs.fx_is_stale is False

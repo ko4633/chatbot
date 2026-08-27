@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
@@ -10,39 +11,43 @@ from apps.api.schemas.common import PriceHistoryPoint, SourceRef
 from apps.api.schemas.opportunity import (
     EntityMatchEvidenceItem,
     EventItem,
+    ForecastItem,
     InsightItem,
     OpportunityDetail,
+    OpportunityHistoryPoint,
+    OpportunityHistoryResponse,
     OpportunityListItem,
     OpportunityListResponse,
     UserDecisionCreate,
     UserDecisionItem,
 )
-from packages.db.enums import DecisionType, EventEntityType, OpportunityStatus
+from packages.db.enums import DataMode, DecisionType, EventEntityType, OpportunityStatus
 from packages.db.models.catalog import Market, Seller
 from packages.db.models.decision import UserDecision
 from packages.db.models.entity_match import EntityMatch
 from packages.db.models.event import Event
+from packages.db.models.forecast import Forecast
 from packages.db.models.insight import Insight
 from packages.db.models.offer import Offer
 from packages.db.models.opportunity import Opportunity
 from packages.db.models.product import Product, ProductVariant
 from packages.db.models.source import Source
 from packages.intelligence import facts
+from packages.intelligence.system_status import system_data_mode
 
 router = APIRouter(prefix="/opportunities", tags=["opportunities"])
 
 
-def _data_mode(db: Session) -> str:
-    """See docs/ARCHITECTURE.md §6 (Mock vs live confusion). Phase 1 only
-    ever has mock sources; this still checks rather than hardcoding, so the
-    header stays correct the moment a live source is added."""
-    has_mock = db.query(Source).filter_by(is_mock=True).first() is not None
-    has_live = db.query(Source).filter_by(is_mock=False).first() is not None
-    if has_mock and has_live:
-        return "mixed"
-    if has_live:
-        return "live"
-    return "mock"
+def _opportunity_data_mode(sources: list[SourceRef]) -> str:
+    """Per-opportunity rollup of Source.data_mode, mirroring _data_mode()'s
+    system-wide version but scoped to only the sources actually backing this
+    opportunity's data (docs/ADR/0007)."""
+    if not sources:
+        return DataMode.MOCK.value
+    modes = {s.data_mode for s in sources}
+    if len(modes) == 1:
+        return modes.pop()
+    return "mixed"
 
 
 def _variants_and_offers_for_market(
@@ -107,6 +112,7 @@ def list_opportunities(
                 kr_seller_count=kr_seller_count,
                 status=opp.status.value,
                 is_mock=source.is_mock if source else True,
+                data_mode=source.data_mode.value if source else DataMode.MOCK.value,
                 created_at=opp.created_at,
             )
         )
@@ -114,7 +120,7 @@ def list_opportunities(
     reverse = order == "desc"
     items.sort(key=lambda i: getattr(i, sort_by), reverse=reverse)
 
-    data_mode = _data_mode(db)
+    data_mode = system_data_mode(db)
     response.headers["X-Omnis-Data-Mode"] = data_mode
     return OpportunityListResponse(items=items, total=len(items), data_mode=data_mode)
 
@@ -217,6 +223,7 @@ def get_opportunity(opportunity_id: uuid.UUID, db: Session = Depends(get_db)) ->
     insights = [
         InsightItem(
             id=i.id,
+            kind=i.kind.value,
             title=i.title,
             narrative=i.narrative,
             is_ai_generated=i.is_ai_generated,
@@ -235,6 +242,27 @@ def get_opportunity(opportunity_id: uuid.UUID, db: Session = Depends(get_db)) ->
     ]
 
     decisions = db.query(UserDecision).filter_by(opportunity_id=opp.id).all()
+
+    latest_forecast_row = (
+        db.query(Forecast)
+        .filter_by(product_id=opp.product_id)
+        .order_by(Forecast.forecast_created_at.desc())
+        .first()
+    )
+    latest_forecast = (
+        ForecastItem(
+            id=latest_forecast_row.id,
+            predicted_direction=latest_forecast_row.predicted_direction.value,
+            predicted_probability=latest_forecast_row.predicted_probability,
+            confidence_tier=latest_forecast_row.confidence_tier.value,
+            is_calibrated=latest_forecast_row.is_calibrated,
+            forecast_horizon_days=latest_forecast_row.forecast_horizon_days,
+            evidence=latest_forecast_row.evidence,
+            created_at=latest_forecast_row.forecast_created_at,
+        )
+        if latest_forecast_row
+        else None
+    )
 
     return OpportunityDetail(
         id=opp.id,
@@ -270,6 +298,59 @@ def get_opportunity(opportunity_id: uuid.UUID, db: Session = Depends(get_db)) ->
             for d in decisions
         ],
         is_mock=all(s.is_mock for s in sources) if sources else True,
+        data_mode=_opportunity_data_mode(sources),
+        latest_forecast=latest_forecast,
+    )
+
+
+def _history_point(opp: Opportunity) -> OpportunityHistoryPoint:
+    econ = opp.economics
+    return OpportunityHistoryPoint(
+        opportunity_id=opp.id,
+        analysis_run_id=opp.analysis_run_id,
+        status=opp.status.value,
+        opportunity_score=float(opp.opportunity_score),
+        confidence_score=float(opp.confidence_score),
+        contribution_margin_krw=econ.get("contribution_margin_krw"),
+        jpy_krw_fx=econ.get("jpy_krw_fx"),
+        japan_purchase_price_jpy=econ.get("japan_purchase_price_jpy"),
+        korea_sale_price_krw=econ.get("target_sale_price_krw"),
+        created_at=opp.created_at,
+    )
+
+
+@router.get("/{opportunity_id}/history", response_model=OpportunityHistoryResponse)
+def get_opportunity_history(
+    opportunity_id: uuid.UUID,
+    as_of: datetime | None = Query(
+        None, description="Reconstruct which opportunity state was current at or before this time."
+    ),
+    db: Session = Depends(get_db),
+) -> OpportunityHistoryResponse:
+    """docs/MASTER_SPEC.md §6: every recompute keeps its own row (superseded
+    ones marked STALE, never deleted or overwritten — docs/EVALUATION.md §6),
+    so the full opportunity_score/confidence/margin/FX time series for a
+    product, and its state as of any past moment, is a query over that
+    existing history rather than a separate table."""
+    opp = db.get(Opportunity, opportunity_id)
+    if opp is None:
+        raise HTTPException(status_code=404, detail="opportunity not found")
+
+    rows = (
+        db.query(Opportunity)
+        .filter_by(product_id=opp.product_id)
+        .order_by(Opportunity.created_at.asc())
+        .all()
+    )
+    points = [_history_point(o) for o in rows]
+
+    current = None
+    if as_of is not None:
+        points = [p for p in points if p.created_at <= as_of]
+        current = points[-1] if points else None
+
+    return OpportunityHistoryResponse(
+        product_id=opp.product_id, as_of=as_of, points=points, current=current
     )
 
 

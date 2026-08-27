@@ -7,18 +7,20 @@ from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from packages.db.base import Base
+from packages.db.enums import InsightKind
 from packages.db.mixins import AIProvenanceMixin, ProvenanceMixin, TimestampMixin, UUIDPk
 
 
 class Insight(Base, UUIDPk, TimestampMixin, ProvenanceMixin, AIProvenanceMixin):
     """A cross-cutting interpretation connecting multiple facts/events.
-    See docs/DATA_MODEL.md."""
+    See docs/DATA_MODEL.md and docs/ADR/0008-insight-kind-enum.md."""
 
     __tablename__ = "insight"
 
     product_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("product.id"), nullable=True, default=None, index=True
     )
+    kind: Mapped[InsightKind] = mapped_column(index=True)
     title: Mapped[str] = mapped_column(Text)
     narrative: Mapped[str] = mapped_column(Text)
     supporting_facts: Mapped[list] = mapped_column(JSONB, default=list)

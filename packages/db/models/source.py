@@ -10,6 +10,8 @@ from sqlalchemy.orm import Mapped, mapped_column
 from packages.core.time_utils import utcnow
 from packages.db.base import Base
 from packages.db.enums import (
+    DataMode,
+    DataQualityStatus,
     ExtractionMethod,
     ReliabilityLevel,
     SnapshotStatus,
@@ -33,6 +35,9 @@ class Source(Base, UUIDPk, TimestampMixin):
     base_url: Mapped[str | None] = mapped_column(Text, default=None)
     is_mock: Mapped[bool] = mapped_column(Boolean)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    data_mode: Mapped[DataMode] = mapped_column(default=DataMode.MOCK)
+    data_quality_status: Mapped[DataQualityStatus] = mapped_column(default=DataQualityStatus.HEALTHY)
+    last_quality_check_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
 
 
 class SourceSnapshot(Base, UUIDPk):

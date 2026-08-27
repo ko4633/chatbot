@@ -16,10 +16,11 @@ from packages.db.enums import MatchType
 CONFIDENCE_COMPONENT_WEIGHTS = {
     "source_count": 0.15,
     "source_reliability": 0.15,
-    "freshness": 0.20,
-    "identifier_tier": 0.25,
+    "freshness": 0.15,
+    "identifier_tier": 0.20,
     "completeness": 0.15,
     "ai_independence": 0.10,
+    "fx_freshness": 0.10,
 }
 
 FRESHNESS_FULL_CONFIDENCE_DAYS = 7
@@ -34,6 +35,13 @@ IDENTIFIER_TIER_SCORE = {
 }
 
 RELIABILITY_SCORE = {"LOW": 33.0, "MEDIUM": 66.0, "HIGH": 100.0}
+
+# An opportunity's economics depend on the FX rate used to compute them
+# (packages/scoring/margin.py); a stale FX observation means the margin
+# figures may no longer reflect reality, so it lowers confidence in the
+# number even though the product-side data hasn't changed (product brief §9).
+FX_FRESH_SCORE = 100.0
+FX_STALE_SCORE = 30.0
 
 
 def _clip(value: float, lo: float = 0.0, hi: float = 100.0) -> float:
@@ -59,6 +67,7 @@ class ConfidenceInputs:
     missing_field_count: int
     total_relevant_field_count: int
     ai_assisted_match: bool
+    fx_is_stale: bool = False
 
 
 @dataclass(frozen=True)
@@ -76,6 +85,7 @@ def compute_confidence(inputs: ConfidenceInputs) -> ConfidenceResult:
         100 * (1 - inputs.missing_field_count / max(inputs.total_relevant_field_count, 1))
     )
     ai_independence_score = 60.0 if inputs.ai_assisted_match else 100.0
+    fx_freshness_score = FX_STALE_SCORE if inputs.fx_is_stale else FX_FRESH_SCORE
 
     components = {
         "source_count": source_count_score,
@@ -84,6 +94,7 @@ def compute_confidence(inputs: ConfidenceInputs) -> ConfidenceResult:
         "identifier_tier": identifier_tier_score,
         "completeness": completeness_score,
         "ai_independence": ai_independence_score,
+        "fx_freshness": fx_freshness_score,
     }
     total = sum(components[name] * weight for name, weight in CONFIDENCE_COMPONENT_WEIGHTS.items())
     return ConfidenceResult(

@@ -27,6 +27,20 @@ worse at them than code, with no offsetting benefit:
 - FX conversion, price/fee/margin calculation, ratios, score arithmetic,
   date/time arithmetic, deterministic-identifier comparison, sorting/ranking
   by a numeric field.
+- **Forecast probability (Phase 2)**: an LLM must never generate a number
+  like "73% success probability" — there is no sample size or calibration
+  behind such a number, and a fabricated one is worse than no forecast at
+  all. `packages/scoring/forecast.py::classify_forecast_direction` produces
+  only a qualitative `BULLISH`/`NEUTRAL`/`BEARISH` label plus a
+  `LOW`/`MEDIUM`/`HIGH` confidence tier, from a measured score/margin delta
+  between two real opportunity recomputes — never an LLM call.
+  `Forecast.predicted_probability` is hardcoded `None` and
+  `Forecast.is_calibrated` is hardcoded `False` at every call site; the UI
+  must display "Not statistically calibrated" alongside the label. The
+  schema (`forecast_horizon_days`, `predicted_probability`, `evidence`,
+  `actual_outcome`, `evaluated_at`) is deliberately shaped so a real
+  calibration pass (Brier score, hit rate) can be added later without a
+  migration — see ADR-0009 and DATA_MODEL.md `forecast`.
 
 `packages/scoring` has no dependency on `packages/ai` — this is enforced by
 not importing it, checked in code review, and would show up immediately as a

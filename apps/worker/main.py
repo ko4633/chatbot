@@ -17,6 +17,7 @@ from packages.core.settings import get_settings
 from packages.db.base import get_session_factory
 from packages.intelligence.pipeline import run_full_analysis
 from packages.observability.logging import configure_logging
+from packages.telegram.bot_runner import run_polling_loop
 
 app = typer.Typer(help="OMNIS worker: ingestion + analysis pipeline")
 
@@ -72,6 +73,20 @@ def status() -> None:
         typer.echo(json.dumps(run.stats, indent=2, default=str))
     finally:
         db.close()
+
+
+@app.command(name="telegram-bot")
+def telegram_bot() -> None:
+    """Run the personal-bot long-polling loop (docs/ADR/0010). Requires
+    TELEGRAM_BOT_TOKEN to be configured; exits immediately with a warning
+    otherwise rather than silently doing nothing forever."""
+    settings = get_settings()
+    configure_logging(settings.log_level)
+    if not settings.telegram_effectively_enabled:
+        typer.echo("Telegram is not configured (TELEGRAM_BOT_TOKEN missing) — nothing to run.")
+        raise typer.Exit(code=1)
+    typer.echo("Starting Telegram bot long-polling loop. Ctrl+C to stop.")
+    run_polling_loop(settings)
 
 
 if __name__ == "__main__":

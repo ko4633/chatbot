@@ -21,6 +21,7 @@ class OpportunityListItem(BaseModel):
     kr_seller_count: int
     status: str
     is_mock: bool
+    data_mode: str  # "MOCK" | "LIVE" | "MANUAL" — docs/ADR/0007
     created_at: datetime
 
 
@@ -28,6 +29,31 @@ class OpportunityListResponse(BaseModel):
     items: list[OpportunityListItem]
     total: int
     data_mode: str  # "mock" | "live" | "mixed"
+
+
+class OpportunityHistoryPoint(BaseModel):
+    """One point in a product's opportunity time series — docs/MASTER_SPEC.md
+    §6 "reconstruct state at a point in time". Backed directly by retained
+    Opportunity rows (superseded ones are marked STALE, never deleted —
+    see docs/EVALUATION.md §6), not a separate history table."""
+
+    opportunity_id: uuid.UUID
+    analysis_run_id: uuid.UUID
+    status: str
+    opportunity_score: float
+    confidence_score: float
+    contribution_margin_krw: float | None
+    jpy_krw_fx: float | None
+    japan_purchase_price_jpy: int | None
+    korea_sale_price_krw: int | None
+    created_at: datetime
+
+
+class OpportunityHistoryResponse(BaseModel):
+    product_id: uuid.UUID
+    as_of: datetime | None  # echoes the ?as_of filter, null when none was given
+    points: list[OpportunityHistoryPoint]
+    current: OpportunityHistoryPoint | None  # the point that was "current" as_of that time
 
 
 class EntityMatchEvidenceItem(BaseModel):
@@ -55,6 +81,7 @@ class EventItem(BaseModel):
 
 class InsightItem(BaseModel):
     id: uuid.UUID
+    kind: str  # docs/ADR/0008 — filter on this, not title
     title: str
     narrative: str
     is_ai_generated: bool
@@ -66,6 +93,22 @@ class UserDecisionItem(BaseModel):
     decision: str
     reason: str | None
     note: str | None
+    created_at: datetime
+
+
+class ForecastItem(BaseModel):
+    """docs/ADR/0009: direction/confidence_tier only — predicted_probability
+    is always null and is_calibrated always false in Phase 2. The UI must
+    show is_calibrated, not just the label, so it reads as a qualitative
+    hint rather than a statistic."""
+
+    id: uuid.UUID
+    predicted_direction: str
+    predicted_probability: float | None
+    confidence_tier: str
+    is_calibrated: bool
+    forecast_horizon_days: int
+    evidence: dict
     created_at: datetime
 
 
@@ -102,3 +145,5 @@ class OpportunityDetail(BaseModel):
     sources: list[SourceRef]
     decisions: list[UserDecisionItem]
     is_mock: bool
+    data_mode: str  # "MOCK" | "LIVE" | "MANUAL" — docs/ADR/0007
+    latest_forecast: ForecastItem | None

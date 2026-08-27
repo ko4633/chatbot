@@ -24,11 +24,12 @@ fixed in the same PR as the code change (CLAUDE.md rule).
 | Layer | Table(s) |
 |---|---|
 | Raw Data | `raw_object`, `source_snapshot` |
-| Observation | `price_observation`, `inventory_observation`, `review_observation`, `demand_observation` |
+| Observation | `price_observation`, `inventory_observation`, `review_observation`, `demand_observation`, `fx_observation` (Phase 2) |
 | Fact | *(no table — a query over the latest Observation per key; see §6)* |
 | Event | `event` |
 | Insight | `insight` |
 | Opportunity | `opportunity` |
+| Forecast (Phase 2) | `forecast` — qualitative direction, distinct from Insight/Opportunity (see §4) |
 | Decision | `user_decision` |
 
 ## 3. Provenance (applies to every Observation, EntityMatch, Insight, Opportunity row)
@@ -82,8 +83,20 @@ country             text nullable (ISO 3166-1 alpha-2)
 base_url            text nullable
 is_mock             boolean not null          -- Phase 1: true for all fixture sources
 is_active           boolean not null default true
+data_mode           enum(MOCK, LIVE, MANUAL) not null default MOCK   -- Phase 2, see ADR-0007;
+                                                                       -- is_mock kept for backward compat
+data_quality_status enum(HEALTHY, DEGRADED, STALE, QUARANTINED, FAILED) not null default HEALTHY
+last_quality_check_at timestamptz nullable
 created_at          timestamptz
 ```
+`data_quality_status` is recomputed after every collector run
+(`packages/collectors/quality.py`) by comparing this run's yield
+(`items_succeeded + items_skipped_duplicate`, since an idempotent
+duplicate-skip is not a failure) against the same collector's previous run.
+FAILED/QUARANTINED sources are excluded from `build_opportunities`
+(`packages/intelligence/opportunity_builder.py::_is_source_usable`) — see
+product brief §16. QUARANTINED is never set automatically; it is reserved
+for a deliberate operator override.
 
 ### raw_object
 Content-addressed pointer into the raw data lake (MinIO).
@@ -231,6 +244,56 @@ demand_observation:
   unique(product_variant_id, metric_type, source_snapshot_id)
 ```
 
+### fx_observation (Phase 2 — ADR-0006)
+Append-only FX rate time series — FX is observed data, not a static config
+value, so it gets the same Observation treatment as price/inventory/review.
+```
+id              uuid pk
+base_currency   text(3)     -- "JPY"
+quote_currency  text(3)     -- "KRW"
+rate            numeric(18,6)
+provider_name   text        -- "manual" | "frankfurter"
+is_live         boolean not null
+source_id       FK -> source, NOT NULL (unlike other ProvenanceMixin uses,
+                                          FX always has exactly one source)
+created_at, retrieved_at, observed_at, parser_name, parser_version,
+extraction_method, confidence   ...ProvenanceMixin...
+unique(base_currency, quote_currency, source_id, observed_at)
+```
+`packages/intelligence/facts.py` exposes `latest_fx`, `fx_history`,
+`fx_as_of(as_of_date)`, and `is_fx_stale(observation, stale_after_hours)` —
+the only place "current FX rate" is queried from, mirroring §6's "Fact as a
+query" pattern for price/inventory/review.
+
+### forecast (Phase 2 — ADR-0009)
+Qualitative direction only. `predicted_probability` is always NULL and
+`is_calibrated` is always `false` in Phase 2 — the schema is future-proofed
+for real calibration (Brier score, hit rate) once enough history + outcome
+labels exist, but nothing computes or displays a probability today
+(CLAUDE.md: never a fabricated number in place of a real one).
+```
+id                      uuid pk
+product_id              FK -> product
+analysis_run_id         FK -> analysis_run
+forecast_created_at     timestamptz
+forecast_horizon_days   int          -- 7 today (packages/scoring/forecast.py), not tuned
+predicted_direction     enum(BULLISH, NEUTRAL, BEARISH)
+predicted_probability   numeric(4,3) nullable  -- always NULL in Phase 2
+confidence_tier         enum(LOW, MEDIUM, HIGH)
+is_calibrated           boolean not null default false  -- always false in Phase 2
+model                   text         -- "deterministic-rule.v1"
+evidence                jsonb        -- {score_delta, margin_delta_krw, fx_is_stale} or
+                                        {reason: "no prior opportunity recompute..."}
+actual_outcome          text nullable   -- reserved for future calibration, unused today
+evaluated_at            timestamptz nullable -- reserved for future calibration, unused today
+created_at              timestamptz
+```
+Direction is classified purely from the measured delta between two
+consecutive `opportunity_score`/`contribution_margin_krw` values for the
+same product (`packages/scoring/forecast.py::classify_forecast_direction`)
+— never an LLM guess. With no prior recompute to compare against, the
+forecast is always NEUTRAL/LOW rather than invented from a single snapshot.
+
 ### entity_match
 Result of the entity resolution engine linking two `product_variant` rows.
 ```
@@ -255,10 +318,13 @@ is left in place with `resolved_product_id` unchanged for audit history —
 ### event
 ```
 id              uuid pk
-entity_type     enum(PRODUCT, PRODUCT_VARIANT, OFFER, SELLER)
-entity_id       uuid
+entity_type     enum(PRODUCT, PRODUCT_VARIANT, OFFER, SELLER, FX_PAIR)
+entity_id       uuid   -- for FX_PAIR, a deterministic uuid5 of "BASE/QUOTE"
+                          (packages/intelligence/events.py::fx_pair_entity_id) —
+                          FX pairs have no natural row of their own to point at
 event_type      enum(PRICE_DROP, PRICE_RISE, NEW_SELLER, SELLER_EXIT, STOCK_OUT,
-                     RESTOCK, NEW_PRODUCT, REVIEW_ACCELERATION, OPPORTUNITY_SCORE_CHANGE)
+                     RESTOCK, NEW_PRODUCT, REVIEW_ACCELERATION, OPPORTUNITY_SCORE_CHANGE,
+                     FX_MOVE, MARGIN_THRESHOLD_CROSSED, FX_DRIVEN_OPPORTUNITY)
 previous_value  jsonb
 new_value       jsonb
 change_pct      numeric nullable
@@ -268,12 +334,22 @@ confidence      numeric(4,3)
 analysis_run_id FK -> analysis_run
 created_at      timestamptz
 ```
+Phase 2 additions: `FX_MOVE` (a ≥1% move between two consecutive FX
+observations for a pair — `detect_fx_events`), `MARGIN_THRESHOLD_CROSSED`
+(an opportunity's `contribution_margin_krw` crossed zero — profitable ↔
+unprofitable — between two recomputes, independent of whether the score
+moved enough to also fire `OPPORTUNITY_SCORE_CHANGE`), `FX_DRIVEN_OPPORTUNITY`
+(fires instead of `OPPORTUNITY_SCORE_CHANGE` when a positive score delta is
+attributable purely to an FX move — same JP/KR prices as the previous run,
+different FX rate).
 
 ### insight
 ```
 id                uuid pk
 product_id        FK -> product, nullable
-title             text
+kind              enum(WHY_NOW, COUNTER_ARGUMENT, THESIS, COUNTERTHESIS,
+                       MISSING_DATA, RECOMMENDATION)   -- Phase 2, ADR-0008
+title             text     -- human-readable label; kind is what queries filter on
 narrative         text
 supporting_facts  jsonb    -- list of {table, id} references
 is_ai_generated   boolean not null
@@ -283,6 +359,14 @@ analysis_run_id   FK -> analysis_run
 created_at        timestamptz
 ...ProvenanceMixin + AIProvenanceMixin...
 ```
+Every Opportunity gets exactly three Insight rows today: `WHY_NOW` and
+`COUNTER_ARGUMENT` (AI-assisted narrative over deterministic facts, same as
+Phase 1's "Why Now"/"Counter-Argument"), and `MISSING_DATA` — a plain,
+**never AI-assisted** list of which tracked fields came back null
+(`packages/intelligence/insight_builder.py::_missing_data_narrative`), set
+`is_ai_generated=False` unconditionally. `THESIS`/`COUNTERTHESIS`/
+`RECOMMENDATION` are reserved kinds — the enum supports them, but nothing
+generates them yet (no half-finished content shipped under those labels).
 
 ### opportunity
 ```
@@ -295,13 +379,18 @@ sub_scores           jsonb   -- {weighted_components: {demand, competition, pric
                               --  trend, supply, logistics, regulation} each with
                               --  {score, weight, contribution}; confidence_components:
                               --  {source_count, source_reliability, freshness,
-                              --  identifier_tier, completeness, ai_independence} each 0-100}
+                              --  identifier_tier, completeness, ai_independence,
+                              --  fx_freshness} each 0-100}
 weights_version      text    -- points at the config/opportunity_weights.yaml version used
 economics            jsonb   -- {japan_purchase_price_jpy, target_sale_price_krw, jpy_krw_fx,
+                              --  fx_is_stale, fx_observed_at, break_even_fx, fx_sensitivity,
                               --  landed_cost_krw, gross_profit_krw, contribution_margin_krw,
                               --  contribution_margin_rate, break_even_sale_price_krw,
-                              --  jp_offer_id, kr_offer_id, jp_seller_count, kr_seller_count}
-                              --  (packages/scoring/margin.py MarginResult + the two offers used)
+                              --  jp_offer_id, kr_offer_id, jp_seller_count, kr_seller_count,
+                              --  missing_data_fields}
+                              --  (packages/scoring/margin.py MarginResult + packages/fx +
+                              --  the two offers used; Phase 2 fields in the second line —
+                              --  see ADR-0006)
 regulation_status    enum(UNKNOWN, LIKELY_LOW, REVIEW_REQUIRED, KNOWN_RESTRICTED)
 regulation_basis     text nullable
 status               enum(NEW, ACTIVE, STALE, REJECTED)
@@ -351,7 +440,9 @@ analysis_run_id   FK -> analysis_run, nullable
 provider          text
 model             text
 purpose           enum(ENTITY_MATCH_JUDGE, NAME_NORMALIZATION, CATEGORY_CLASSIFICATION,
-                       OPPORTUNITY_NARRATIVE, COUNTER_ARGUMENT, EMBEDDING)
+                       OPPORTUNITY_NARRATIVE, COUNTER_ARGUMENT, EMBEDDING,
+                       THESIS, COUNTERTHESIS, MISSING_DATA_ANALYSIS)   -- last 3 reserved,
+                                                                          -- unused in Phase 2
 input_tokens, output_tokens, cached_tokens  int nullable
 estimated_cost_usd  numeric(10,6) nullable
 started_at, completed_at  timestamptz

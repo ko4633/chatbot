@@ -1,11 +1,13 @@
 # Default cost/fee assumptions for the landed-cost/margin calculator
 # (packages/scoring/margin.py). These are editable placeholder assumptions,
 # not fetched from a live source — docs/MASTER_SPEC.md §16 requires every
-# assumption to be configurable, not hardcoded. jpy_krw_fx in particular is a
-# static illustrative rate; a live FX connector is Phase 2 scope
-# (docs/ROADMAP.md) — until then this number is exactly what it looks like:
-# an assumption, not an observed Fact, and it is never stored as one.
-jpy_krw_fx: 9.30
+# assumption to be configurable, not hardcoded.
+#
+# FX is NOT an assumption in this file as of Phase 2 — it is observed,
+# time-varying data sourced through packages/fx (see
+# docs/ADR/0006-fx-provider-architecture.md) and passed into compute_margin()
+# explicitly, because a static number here would silently go stale exactly
+# the way product brief §9 says it must not.
 
 # Shipping figures assume a consolidated batch import (many SKUs per
 # shipment, cost amortized per unit) rather than shipping one item alone —

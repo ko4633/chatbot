@@ -13,9 +13,21 @@ from sqlalchemy.orm import Session
 from packages.db.enums import EventEntityType, EventType
 from packages.db.models.event import Event
 from packages.db.models.offer import Offer
+from packages.fx.ingest import DEFAULT_PAIRS
 from packages.intelligence import facts
 
 PRICE_CHANGE_THRESHOLD_PCT = 0.03  # below this, treated as noise, not a PRICE_DROP/RISE event
+FX_CHANGE_THRESHOLD_PCT = 0.01  # FX moves are smaller in magnitude than product prices day-to-day
+
+# Deterministic synthetic entity_id for an FX pair (event.entity_id is a
+# UUID column; a currency pair like "JPY/KRW" has no natural UUID of its
+# own). Same pair always maps to the same id, so querying "all FX_MOVE
+# events for JPY/KRW" is a stable filter.
+_FX_PAIR_NAMESPACE = uuid.UUID("6f6e6d69-7300-4f4d-4e49-535f46585041")  # "omni...OMNIS_FXPA" bytes, fixed
+
+
+def fx_pair_entity_id(base_currency: str, quote_currency: str) -> uuid.UUID:
+    return uuid.uuid5(_FX_PAIR_NAMESPACE, f"{base_currency.upper()}/{quote_currency.upper()}")
 
 
 @dataclass
@@ -69,6 +81,45 @@ def detect_price_events(db: Session, analysis_run_id: uuid.UUID) -> EventDetecti
                     "new_observation_id": str(latest.id),
                 },
                 confidence=1.0,  # directly computed from two real observations — not a guess
+                analysis_run_id=analysis_run_id,
+            )
+        )
+        db.flush()
+        stats.events_created += 1
+    return stats
+
+
+def detect_fx_events(db: Session, analysis_run_id: uuid.UUID) -> EventDetectionStats:
+    """FX_MOVE — same "compare the last two real observations" rule as
+    detect_price_events, applied to FX (product brief §14)."""
+    stats = EventDetectionStats()
+    for base, quote in DEFAULT_PAIRS:
+        history = facts.fx_history(db, base, quote)
+        if len(history) < 2:
+            continue
+        previous, latest = history[-2], history[-1]
+        if previous.rate <= 0:
+            continue
+        change_pct = (float(latest.rate) - float(previous.rate)) / float(previous.rate)
+        if abs(change_pct) < FX_CHANGE_THRESHOLD_PCT:
+            continue
+        entity_id = fx_pair_entity_id(base, quote)
+        if _event_already_recorded(db, entity_id, EventType.FX_MOVE, latest.observed_at):
+            continue
+        db.add(
+            Event(
+                entity_type=EventEntityType.FX_PAIR,
+                entity_id=entity_id,
+                event_type=EventType.FX_MOVE,
+                previous_value={"rate": float(previous.rate), "pair": f"{base}/{quote}"},
+                new_value={"rate": float(latest.rate), "pair": f"{base}/{quote}"},
+                change_pct=round(change_pct * 100, 2),
+                observed_at=latest.observed_at,
+                evidence={
+                    "previous_observation_id": str(previous.id),
+                    "new_observation_id": str(latest.id),
+                },
+                confidence=1.0,
                 analysis_run_id=analysis_run_id,
             )
         )

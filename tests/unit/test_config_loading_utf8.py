@@ -23,7 +23,7 @@ def test_margin_assumptions_decode_em_dash_correctly():
     # loading it at all (via yaml.safe_load reading the whole file) proves
     # the file was decoded as UTF-8, not mangled/rejected as cp949 would.
     assumptions = load_margin_assumptions()
-    assert assumptions["jpy_krw_fx"] > 0
+    assert assumptions["japan_domestic_shipping_jpy"] > 0
 
 
 def test_opportunity_weights_load_and_sum_to_one():

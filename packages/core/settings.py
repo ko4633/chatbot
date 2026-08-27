@@ -44,6 +44,14 @@ class Settings(BaseSettings):
     api_host: str = "0.0.0.0"
     api_port: int = 8000
 
+    fx_provider: str = "manual"  # "manual" | "frankfurter" — see docs/ADR/0006
+    fx_stale_hours: int = 48  # FX older than this is FRESH -> STALE (docs/DATA_MODEL.md fx freshness)
+
+    telegram_bot_token: str = ""
+    telegram_chat_id: str = ""
+    telegram_broadcast_enabled: bool = False
+    telegram_broadcast_min_score: float = 70.0  # only NEW opportunities at/above this score get pushed
+
     @property
     def database_url(self) -> str:
         return (
@@ -59,6 +67,10 @@ class Settings(BaseSettings):
         it silently falls back to NullAIProvider instead.
         """
         return self.ai_enabled and bool(self.anthropic_api_key)
+
+    @property
+    def telegram_effectively_enabled(self) -> bool:
+        return bool(self.telegram_bot_token) and bool(self.telegram_chat_id)
 
 
 @lru_cache

@@ -6,11 +6,13 @@
 Browser (apps/web)  --https-->  OMNIS Backend (apps/api)  --https-->  AI / external APIs
 ```
 
-The browser never holds, sends, or receives an AI provider key or a
-marketplace API key. There is no `NEXT_PUBLIC_OPENAI_KEY` /
-`NEXT_PUBLIC_ANTHROPIC_KEY` style variable anywhere in this repo, and there
+The browser never holds, sends, or receives an AI provider key, a
+marketplace API key, or (Phase 2) the Telegram bot token. There is no
+`NEXT_PUBLIC_OPENAI_KEY` / `NEXT_PUBLIC_ANTHROPIC_KEY` /
+`NEXT_PUBLIC_TELEGRAM_TOKEN` style variable anywhere in this repo, and there
 must never be one — any PR introducing a `NEXT_PUBLIC_*` secret is a
 security bug, not a style nit.
+`tests/unit/test_no_secret_exposed_to_frontend.py` statically checks this.
 
 ## 2. Secrets
 
@@ -83,4 +85,7 @@ yet by tooling.
 | Key committed to git | `.env` gitignored, `.env.example` has placeholders only, pre-commit awareness in `CLAUDE.md` |
 | SQL injection | ORM-only, parameterized queries |
 | Malicious HTML in a fixture/collector response | Parsed with a real parser, never executed; stored as opaque blob, never rendered raw in the browser |
-| Mock data mistaken for live and acted on | `Source.is_mock`, UI badge, `X-Omnis-Data-Mode` response header (see ARCHITECTURE.md §6) |
+| Mock data mistaken for live and acted on | `Source.is_mock`/`data_mode`, UI badge, `X-Omnis-Data-Mode` response header (see ARCHITECTURE.md §6) |
+| Telegram bot token leaked via frontend bundle (Phase 2) | Read only by `packages/core/settings.py`; never reaches `apps/web`; statically checked |
+| Telegram bot token leaked via logs (Phase 2) | Same `*token*` redaction pattern in §3, no code change needed |
+| Fabricated forecast probability presented as real (Phase 2) | Structurally impossible — `Forecast.predicted_probability` is hardcoded `None` at every call site (ADR-0009) |

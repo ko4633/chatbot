@@ -18,6 +18,7 @@ class SourceRef(ORMModel):
     factual_reliability: str
     signal_value: str
     is_mock: bool
+    data_mode: str  # "MOCK" | "LIVE" | "MANUAL" — docs/ADR/0007-explicit-data-mode-field.md
     base_url: str | None = None
 
 

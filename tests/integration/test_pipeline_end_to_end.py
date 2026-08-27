@@ -10,9 +10,13 @@ from packages.ai.null_provider import NullAIProvider
 from packages.collectors.japan_marketplace import JapanMarketplaceProvider
 from packages.collectors.korea_marketplace import KoreaMarketplaceProvider
 from packages.collectors.storage import LocalFileStore
-from packages.db.enums import AnalysisRunStatus
+from packages.db.enums import AnalysisRunStatus, DataQualityStatus, ForecastDirection, InsightKind
+from packages.db.models.forecast import Forecast
+from packages.db.models.insight import Insight
 from packages.db.models.opportunity import Opportunity
 from packages.db.models.product import Product
+from packages.db.models.source import Source
+from packages.intelligence.opportunity_builder import build_opportunities
 from packages.intelligence.pipeline import run_full_analysis
 
 
@@ -90,3 +94,62 @@ def test_rerunning_pipeline_marks_previous_opportunity_stale(clean_db, tmp_path)
 
     stale = clean_db.query(Opportunity).filter(Opportunity.id.in_(first_ids)).all()
     assert all(o.status == OpportunityStatus.STALE for o in stale)
+
+
+def test_every_opportunity_gets_why_now_counter_argument_and_missing_data_insights(
+    clean_db, tmp_path
+):
+    _run_pipeline(clean_db, tmp_path)
+    opportunities = clean_db.query(Opportunity).all()
+    assert len(opportunities) > 0
+    for opp in opportunities:
+        kinds = {
+            i.kind for i in clean_db.query(Insight).filter_by(product_id=opp.product_id).all()
+        }
+        assert InsightKind.WHY_NOW in kinds
+        assert InsightKind.COUNTER_ARGUMENT in kinds
+        assert InsightKind.MISSING_DATA in kinds
+
+
+def test_failed_source_data_is_excluded_from_opportunity_calculation(clean_db, tmp_path):
+    # docs/MASTER_SPEC.md §16: a collector marked FAILED must not feed the
+    # Opportunity calculation, even if it already wrote observations in an
+    # earlier, healthy run.
+    run1 = _run_pipeline(clean_db, tmp_path)
+    assert clean_db.query(Opportunity).count() == 4
+
+    jp_source = clean_db.query(Source).filter_by(name="OMNIS Fixture: Japan Marketplace").one()
+    jp_source.data_quality_status = DataQualityStatus.FAILED
+    clean_db.commit()
+
+    stats = build_opportunities(clean_db, run1.id)
+    clean_db.commit()
+    assert stats.opportunities_created == 0
+    assert stats.products_skipped_no_cross_market_offer == 4
+
+
+def test_first_run_forecast_is_neutral_with_no_fabricated_probability(clean_db, tmp_path):
+    # No prior recompute exists yet on a first run, so every forecast must be
+    # the honest "no history" NEUTRAL/LOW label, never a guessed direction
+    # (docs/ADR/0009-forecast-no-fabricated-probability.md).
+    _run_pipeline(clean_db, tmp_path)
+    forecasts = clean_db.query(Forecast).all()
+    opportunities = clean_db.query(Opportunity).all()
+    assert len(forecasts) == len(opportunities)
+    for f in forecasts:
+        assert f.predicted_direction == ForecastDirection.NEUTRAL
+        assert f.predicted_probability is None
+        assert f.is_calibrated is False
+
+
+def test_rerun_forecast_reflects_measured_score_and_margin_delta(clean_db, tmp_path):
+    _run_pipeline(clean_db, tmp_path)
+    run2 = _run_pipeline(clean_db, tmp_path)
+    forecasts = clean_db.query(Forecast).filter_by(analysis_run_id=run2.id).all()
+    assert len(forecasts) > 0
+    for f in forecasts:
+        # Same fixture data run twice -> zero score/margin delta -> NEUTRAL,
+        # never a fabricated probability regardless.
+        assert f.predicted_probability is None
+        assert f.is_calibrated is False
+        assert "score_delta" in f.evidence

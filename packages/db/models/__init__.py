@@ -5,6 +5,8 @@ from packages.db.models.catalog import Brand, Manufacturer, Market, Marketplace,
 from packages.db.models.decision import UserDecision, WatchlistItem
 from packages.db.models.entity_match import EntityMatch
 from packages.db.models.event import Event
+from packages.db.models.forecast import Forecast
+from packages.db.models.fx import FXObservation
 from packages.db.models.insight import Insight
 from packages.db.models.observations import (
     DemandObservation,
@@ -29,6 +31,8 @@ __all__ = [
     "WatchlistItem",
     "EntityMatch",
     "Event",
+    "Forecast",
+    "FXObservation",
     "Insight",
     "DemandObservation",
     "InventoryObservation",
