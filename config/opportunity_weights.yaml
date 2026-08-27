@@ -1,0 +1,15 @@
+# Weighted components of the Opportunity Score (0-100). Deliberately does
+# NOT include a "confidence" key — see ADR-0003: confidence is tracked as an
+# independent axis (opportunity.confidence_score), never blended into this
+# score. Weights must sum to 1.0; packages/scoring/opportunity.py validates
+# this at load time rather than silently normalizing a typo'd config.
+version: "opportunity_weights.v1"
+weights:
+  demand: 0.15
+  competition: 0.15
+  price_gap: 0.20
+  margin: 0.20
+  trend: 0.10
+  supply: 0.10
+  logistics: 0.05
+  regulation: 0.05

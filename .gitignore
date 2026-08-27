@@ -1,0 +1,27 @@
+.env
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+
+node_modules/
+.next/
+out/
+npm-debug.log*
+*.tsbuildinfo
+
+.DS_Store
+*.log
+
+# local data volumes if bind-mounted
+/data/
+
+# Windows automation script state (scripts/_lib.ps1)
+/.omnis-run-state.json
+/.omnis-cache/

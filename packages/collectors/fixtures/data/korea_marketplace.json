@@ -1,0 +1,136 @@
+{
+  "_comment": "FIXTURE DATA — not a real marketplace. See docs/MASTER_SPEC.md §46 and docs/ARCHITECTURE.md §4/§19: no live KR marketplace connector exists yet (LIVE_CONNECTOR_PENDING). Shapes here are illustrative of a Coupang-like KR listing API, not a verified real one. jan_code values mirror the JP fixture's jan for the intentionally-matching pairs.",
+  "products": [
+    {
+      "product_id": "kr-001",
+      "detail_url": "fixture://kr-marketplace/products/kr-001",
+      "store": {"code": "STORE-88", "display_name": "공구나라"},
+      "name_ko": "올파(OLFA) 가죽공예칼 43B 일본산",
+      "brand_name": "올파(OLFA)",
+      "jan_code": "4901165304236",
+      "model_no": "43B",
+      "spec": {"length_mm": 165, "width_mm": 22, "height_mm": 12, "weight_g": 35, "material": "steel/wood"},
+      "pack_qty": 1,
+      "snapshots": [
+        {"crawled_at": "2026-08-12T05:00:00Z", "effective_at": "2026-08-12T05:00:00Z",
+         "price_krw": 12900, "sold_out": false, "quantity_available": 20,
+         "review_total": 28, "rating_avg": 4.4},
+        {"crawled_at": "2026-08-26T05:00:00Z", "effective_at": "2026-08-26T05:00:00Z",
+         "price_krw": 12900, "sold_out": false, "quantity_available": 15,
+         "review_total": 34, "rating_avg": 4.4}
+      ]
+    },
+    {
+      "product_id": "kr-002",
+      "detail_url": "fixture://kr-marketplace/products/kr-002",
+      "store": {"code": "STORE-12", "display_name": "다이소공구몰"},
+      "name_ko": "OLFA 43B 가죽칼 정품",
+      "brand_name": "OLFA",
+      "jan_code": "4901165304236",
+      "model_no": "43B",
+      "spec": {"length_mm": 165, "width_mm": 22, "height_mm": 12, "weight_g": 35, "material": "steel/wood"},
+      "pack_qty": 1,
+      "snapshots": [
+        {"crawled_at": "2026-08-26T05:00:00Z", "effective_at": "2026-08-26T05:00:00Z",
+         "price_krw": 13400, "sold_out": false, "quantity_available": 9,
+         "review_total": 6, "rating_avg": 4.2}
+      ]
+    },
+    {
+      "product_id": "kr-003",
+      "detail_url": "fixture://kr-marketplace/products/kr-003",
+      "store": {"code": "STORE-21", "display_name": "캠핑스토어제이"},
+      "name_ko": "써모스 스테인리스 보틀 JNL-450",
+      "brand_name": "써모스(THERMOS)",
+      "jan_code": null,
+      "model_no": "JNL-450",
+      "spec": {"length_mm": 75, "width_mm": 75, "height_mm": 200, "weight_g": 250, "material": "stainless"},
+      "pack_qty": 1,
+      "snapshots": [
+        {"crawled_at": "2026-08-26T05:00:00Z", "effective_at": "2026-08-26T05:00:00Z",
+         "price_krw": 128000, "sold_out": false, "quantity_available": 11,
+         "review_total": 142, "rating_avg": 4.5}
+      ]
+    },
+    {
+      "product_id": "kr-004",
+      "detail_url": "fixture://kr-marketplace/products/kr-004",
+      "store": {"code": "STORE-33", "display_name": "아웃도어킹"},
+      "name_ko": "THERMOS JNL-450 텀블러",
+      "brand_name": "THERMOS",
+      "jan_code": null,
+      "model_no": "JNL-450",
+      "spec": {"length_mm": 75, "width_mm": 75, "height_mm": 200, "weight_g": 250, "material": "stainless"},
+      "pack_qty": 1,
+      "snapshots": [
+        {"crawled_at": "2026-08-26T05:00:00Z", "effective_at": "2026-08-26T05:00:00Z",
+         "price_krw": 132000, "sold_out": false, "quantity_available": 7,
+         "review_total": 19, "rating_avg": 4.3}
+      ]
+    },
+    {
+      "product_id": "kr-005",
+      "detail_url": "fixture://kr-marketplace/products/kr-005",
+      "store": {"code": "STORE-45", "display_name": "산장캠핑"},
+      "name_ko": "써모스 JNL-450 등산보틀",
+      "brand_name": "써모스",
+      "jan_code": null,
+      "model_no": "JNL-450",
+      "spec": {"length_mm": 75, "width_mm": 75, "height_mm": 200, "weight_g": 250, "material": "stainless"},
+      "pack_qty": 1,
+      "snapshots": [
+        {"crawled_at": "2026-08-26T05:00:00Z", "effective_at": "2026-08-26T05:00:00Z",
+         "price_krw": 129500, "sold_out": false, "quantity_available": 4,
+         "review_total": 8, "rating_avg": 4.1}
+      ]
+    },
+    {
+      "product_id": "kr-006",
+      "detail_url": "fixture://kr-marketplace/products/kr-006",
+      "store": {"code": "STORE-21", "display_name": "캠핑스토어제이"},
+      "name_ko": "써모스 스테인리스 보틀 JNL-481",
+      "brand_name": "써모스(THERMOS)",
+      "jan_code": null,
+      "model_no": "JNL-481",
+      "spec": {"length_mm": 78, "width_mm": 78, "height_mm": 215, "weight_g": 270, "material": "stainless"},
+      "pack_qty": 1,
+      "snapshots": [
+        {"crawled_at": "2026-08-26T05:00:00Z", "effective_at": "2026-08-26T05:00:00Z",
+         "price_krw": 145000, "sold_out": false, "quantity_available": 10,
+         "review_total": 5, "rating_avg": 4.0}
+      ]
+    },
+    {
+      "product_id": "kr-007",
+      "detail_url": "fixture://kr-marketplace/products/kr-007",
+      "store": {"code": "STORE-88", "display_name": "공구나라"},
+      "name_ko": "올파 커터칼 L형",
+      "brand_name": "올파(OLFA)",
+      "jan_code": "4901165102597",
+      "model_no": "L-type",
+      "spec": {"length_mm": 170, "width_mm": 18, "height_mm": 10, "weight_g": 40, "material": "plastic/steel"},
+      "pack_qty": 1,
+      "snapshots": [
+        {"crawled_at": "2026-08-26T05:00:00Z", "effective_at": "2026-08-26T05:00:00Z",
+         "price_krw": 2900, "sold_out": false, "quantity_available": 80,
+         "review_total": 210, "rating_avg": 4.6}
+      ]
+    },
+    {
+      "product_id": "kr-008",
+      "detail_url": "fixture://kr-marketplace/products/kr-008",
+      "store": {"code": "STORE-90", "display_name": "주방마을"},
+      "name_ko": "스테인리스 주방가위",
+      "brand_name": null,
+      "jan_code": null,
+      "model_no": null,
+      "spec": {"material": "stainless"},
+      "pack_qty": 1,
+      "snapshots": [
+        {"crawled_at": "2026-08-26T05:00:00Z", "effective_at": "2026-08-26T05:00:00Z",
+         "price_krw": 9900, "sold_out": false, "quantity_available": 33,
+         "review_total": 4, "rating_avg": 3.7}
+      ]
+    }
+  ]
+}

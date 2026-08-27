@@ -1,0 +1,109 @@
+{
+  "_comment": "FIXTURE DATA — not a real marketplace. See docs/MASTER_SPEC.md §46 and docs/ARCHITECTURE.md §4/§19: no live JP marketplace connector exists yet (LIVE_CONNECTOR_PENDING). Shapes here are illustrative of a Rakuten-like JP listing API, not a verified real one. jan codes are fictional though JAN-format.",
+  "listings": [
+    {
+      "listing_id": "jp-001",
+      "url": "fixture://jp-marketplace/item/jp-001",
+      "seller": {"id": "seller-jp-01", "name": "刃物専門店ヤマダ"},
+      "title": "オルファ 別たち 43B 皮革用ナイフ",
+      "brand": "OLFA",
+      "jan": "4901165304236",
+      "model_number": "43B",
+      "dimensions_mm": {"l": 165, "w": 22, "h": 12},
+      "weight_g": 35,
+      "material": "鋼/木",
+      "pack_quantity": 1,
+      "snapshots": [
+        {"retrieved_at": "2026-08-12T03:00:00Z", "observed_at": "2026-08-12T03:00:00Z",
+         "price_jpy": 1580, "in_stock": true, "stock_quantity": 30,
+         "review_count": 110, "average_rating": 4.6},
+        {"retrieved_at": "2026-08-26T03:00:00Z", "observed_at": "2026-08-26T03:00:00Z",
+         "price_jpy": 1280, "in_stock": true, "stock_quantity": 42,
+         "review_count": 128, "average_rating": 4.6}
+      ]
+    },
+    {
+      "listing_id": "jp-002",
+      "url": "fixture://jp-marketplace/item/jp-002",
+      "seller": {"id": "seller-jp-02", "name": "アウトドア用品店タナカ"},
+      "title": "THERMOS 山専ステンレスボトル JNL-450",
+      "brand": "THERMOS",
+      "jan": null,
+      "model_number": "JNL-450",
+      "dimensions_mm": {"l": 75, "w": 75, "h": 200},
+      "weight_g": 250,
+      "capacity": "450ml",
+      "material": "ステンレス",
+      "pack_quantity": 1,
+      "snapshots": [
+        {"retrieved_at": "2026-08-12T03:00:00Z", "observed_at": "2026-08-12T03:00:00Z",
+         "price_jpy": 6200, "in_stock": true, "stock_quantity": 18,
+         "review_count": 340, "average_rating": 4.5},
+        {"retrieved_at": "2026-08-26T03:00:00Z", "observed_at": "2026-08-26T03:00:00Z",
+         "price_jpy": 5980, "in_stock": true, "stock_quantity": 22,
+         "review_count": 355, "average_rating": 4.5}
+      ]
+    },
+    {
+      "listing_id": "jp-003",
+      "url": "fixture://jp-marketplace/item/jp-003",
+      "seller": {"id": "seller-jp-02", "name": "アウトドア用品店タナカ"},
+      "title": "THERMOS 山専ステンレスボトル JNL-481",
+      "brand": "THERMOS",
+      "jan": null,
+      "model_number": "JNL-481",
+      "dimensions_mm": {"l": 78, "w": 78, "h": 215},
+      "weight_g": 270,
+      "capacity": "480ml",
+      "material": "ステンレス",
+      "pack_quantity": 1,
+      "snapshots": [
+        {"retrieved_at": "2026-08-26T03:00:00Z", "observed_at": "2026-08-26T03:00:00Z",
+         "price_jpy": 6980, "in_stock": true, "stock_quantity": 12,
+         "review_count": 58, "average_rating": 4.3}
+      ]
+    },
+    {
+      "listing_id": "jp-004",
+      "url": "fixture://jp-marketplace/item/jp-004",
+      "seller": {"id": "seller-jp-01", "name": "刃物専門店ヤマダ"},
+      "title": "オルファ カッターナイフ L型",
+      "brand": "OLFA",
+      "jan": "4901165102597",
+      "model_number": "L-type",
+      "dimensions_mm": {"l": 170, "w": 18, "h": 10},
+      "weight_g": 40,
+      "material": "プラスチック/鋼",
+      "pack_quantity": 1,
+      "snapshots": [
+        {"retrieved_at": "2026-08-26T03:00:00Z", "observed_at": "2026-08-26T03:00:00Z",
+         "price_jpy": 320, "in_stock": true, "stock_quantity": 200,
+         "review_count": 890, "average_rating": 4.7}
+      ]
+    },
+    {
+      "listing_id": "jp-005",
+      "url": "fixture://jp-marketplace/item/jp-005",
+      "seller": {"id": "seller-jp-03", "name": "キッチン雑貨コスガ"},
+      "title": "日本製 ステンレス キッチンバサミ",
+      "brand": null,
+      "jan": null,
+      "model_number": null,
+      "dimensions_mm": null,
+      "weight_g": null,
+      "material": "ステンレス",
+      "pack_quantity": 1,
+      "snapshots": [
+        {"retrieved_at": "2026-08-26T03:00:00Z", "observed_at": "2026-08-26T03:00:00Z",
+         "price_jpy": 980, "in_stock": true, "stock_quantity": 60,
+         "review_count": 12, "average_rating": 3.9}
+      ]
+    },
+    {
+      "listing_id": "jp-006-broken",
+      "url": "fixture://jp-marketplace/item/jp-006-broken",
+      "simulate_fetch_failure": true,
+      "_comment": "Intentionally-broken fixture used by tests/integration to prove a single failed collector item does not abort the run (docs/ARCHITECTURE.md §6 Adversarial Review: Collector failure isolation)."
+    }
+  ]
+}

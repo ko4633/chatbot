@@ -1,0 +1,44 @@
+# ManualFXProvider fixture data (docs/ADR/0006). Illustrative FX history —
+# NOT live rates. Source.data_mode=MOCK for every observation ingested from
+# this file (see packages/fx/manual_provider.py). Replace/extend once a live
+# provider is wired up (docs/LIVE_SOURCE_RESEARCH.md).
+#
+# "latest" is the current rate used for margin calculation by default.
+# "history" gives weekly points so 7-day/30-day change queries have
+# something real to compute over (docs/DATA_MODEL.md fx_observation).
+pairs:
+  JPY/KRW:
+    latest:
+      rate: 9.30
+      observed_at: "2026-08-26T00:00:00Z"
+    history:
+      - { observed_at: "2026-07-22T00:00:00Z", rate: 9.42 }
+      - { observed_at: "2026-07-29T00:00:00Z", rate: 9.38 }
+      - { observed_at: "2026-08-05T00:00:00Z", rate: 9.36 }
+      - { observed_at: "2026-08-12T00:00:00Z", rate: 9.33 }
+      - { observed_at: "2026-08-19T00:00:00Z", rate: 9.31 }
+      - { observed_at: "2026-08-26T00:00:00Z", rate: 9.30 }
+
+  USD/KRW:
+    latest:
+      rate: 1345.0
+      observed_at: "2026-08-26T00:00:00Z"
+    history:
+      - { observed_at: "2026-07-22T00:00:00Z", rate: 1360.0 }
+      - { observed_at: "2026-07-29T00:00:00Z", rate: 1355.0 }
+      - { observed_at: "2026-08-05T00:00:00Z", rate: 1352.0 }
+      - { observed_at: "2026-08-12T00:00:00Z", rate: 1349.0 }
+      - { observed_at: "2026-08-19T00:00:00Z", rate: 1347.0 }
+      - { observed_at: "2026-08-26T00:00:00Z", rate: 1345.0 }
+
+  EUR/KRW:
+    latest:
+      rate: 1460.0
+      observed_at: "2026-08-26T00:00:00Z"
+    history:
+      - { observed_at: "2026-07-22T00:00:00Z", rate: 1470.0 }
+      - { observed_at: "2026-07-29T00:00:00Z", rate: 1467.0 }
+      - { observed_at: "2026-08-05T00:00:00Z", rate: 1465.0 }
+      - { observed_at: "2026-08-12T00:00:00Z", rate: 1463.0 }
+      - { observed_at: "2026-08-19T00:00:00Z", rate: 1461.0 }
+      - { observed_at: "2026-08-26T00:00:00Z", rate: 1460.0 }
