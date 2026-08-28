@@ -308,6 +308,52 @@
 
   .manga-controls textarea:focus { border-color: #FEE500; }
 
+  .manga-key-input {
+    margin: 10px 16px 0;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-family: monospace;
+    outline: none;
+  }
+
+  .manga-key-input:focus { border-color: #FEE500; }
+
+  .manga-subtabs {
+    display: flex;
+    gap: 6px;
+    padding: 10px 16px 0;
+  }
+
+  .manga-subtab {
+    flex: 1;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 6px 8px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: 'Noto Sans KR', sans-serif;
+  }
+
+  .manga-subtab.active {
+    background: #3C1E1E;
+    color: white;
+    border-color: #3C1E1E;
+  }
+
+  .manga-sub {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .manga-clear-btn {
+    background: #999;
+  }
+
   .manga-controls input {
     border: 1px solid #ddd;
     border-radius: 8px;
@@ -498,27 +544,54 @@
   <!-- 만화 만들기 화면 -->
   <div class="manga-view" id="mangaView">
 
-    <div class="manga-controls">
-      <input type="password" id="openaiKey" placeholder="이미지 생성용 OpenAI API 키 (sk-...) 붙여넣기" />
-      <textarea id="mangaTopic" rows="2" placeholder="어떤 만화를 그리고 싶으세요? 예) 고양이가 처음 눈을 본 이야기"></textarea>
-      <div class="manga-options">
-        <select id="mangaPanelCount">
-          <option value="4">4컷</option>
-          <option value="6">6컷</option>
-          <option value="8">8컷</option>
-        </select>
-        <select id="mangaGenre">
-          <option value="따뜻하고 잔잔한 일상">일상</option>
-          <option value="유쾌하고 웃긴">코미디</option>
-          <option value="뭉클하고 감동적인">감동</option>
-          <option value="상상력 넘치는 판타지">판타지</option>
-        </select>
-        <button class="manga-generate-btn" id="mangaGenBtn" onclick="generateManga()">만화 생성</button>
+    <input type="password" id="openaiKey" class="manga-key-input" placeholder="이미지 생성용 OpenAI API 키 (sk-...) 붙여넣기" />
+
+    <!-- 만화 서브 탭 -->
+    <div class="manga-subtabs">
+      <button class="manga-subtab active" id="subtabAuto" onclick="setMangaSubmode('auto')">📖 자동 생성</button>
+      <button class="manga-subtab" id="subtabManual" onclick="setMangaSubmode('manual')">✏️ 한 컷씩 만들기</button>
+    </div>
+
+    <!-- 자동 생성: 주제만 주면 스토리+컷 전체를 알아서 -->
+    <div class="manga-sub" id="mangaAuto">
+      <div class="manga-controls">
+        <textarea id="mangaTopic" rows="2" placeholder="어떤 만화를 그리고 싶으세요? 예) 고양이가 처음 눈을 본 이야기"></textarea>
+        <div class="manga-options">
+          <select id="mangaPanelCount">
+            <option value="4">4컷</option>
+            <option value="6">6컷</option>
+            <option value="8">8컷</option>
+          </select>
+          <select id="mangaGenre">
+            <option value="따뜻하고 잔잔한 일상">일상</option>
+            <option value="유쾌하고 웃긴">코미디</option>
+            <option value="뭉클하고 감동적인">감동</option>
+            <option value="상상력 넘치는 판타지">판타지</option>
+          </select>
+          <button class="manga-generate-btn" id="mangaGenBtn" onclick="generateManga()">만화 생성</button>
+        </div>
+      </div>
+
+      <div class="manga-result" id="mangaResult">
+        <div class="manga-empty">주제를 입력하고 '만화 생성'을 눌러보세요 🎨</div>
       </div>
     </div>
 
-    <div class="manga-result" id="mangaResult">
-      <div class="manga-empty">주제를 입력하고 '만화 생성'을 눌러보세요 🎨</div>
+    <!-- 한 컷씩 만들기: 씬을 직접 설명하면 그 장면 하나를 컷으로 -->
+    <div class="manga-sub" id="mangaManual" style="display:none;">
+      <div class="manga-controls">
+        <textarea id="sceneInput" rows="2" placeholder="이번 컷 장면을 설명해주세요. 예) 고양이가 창밖에 내리는 눈을 보고 앞발을 창문에 갖다 댄다"></textarea>
+        <input type="text" id="sceneDialogue" placeholder="대사 (선택, 없으면 비워두세요)" />
+        <div class="manga-options">
+          <button class="manga-generate-btn" id="sceneGenBtn" onclick="addManualPanel()" style="margin-left:0;">컷 그리기</button>
+          <button class="manga-generate-btn manga-clear-btn" onclick="clearManualPanels()">전체 지우기</button>
+        </div>
+      </div>
+
+      <div class="manga-result" id="manualResult">
+        <div class="manga-empty" id="manualEmpty">장면을 설명하고 '컷 그리기'를 누르면, 컷이 하나씩 쌓여서 만화가 됩니다 🎨</div>
+        <div class="manga-grid" id="manualGrid"></div>
+      </div>
     </div>
 
   </div>
@@ -674,6 +747,79 @@ function setMode(mode) {
 }
 
 const MANGA_ART_STYLE = 'black and white Korean webtoon manhwa panel illustration, clean bold ink linework, high-contrast monochrome, no gray screentone, expressive dramatic line art, digital comic art, no text or letters or watermark in the image';
+
+function setMangaSubmode(mode) {
+  const auto = document.getElementById('mangaAuto');
+  const manual = document.getElementById('mangaManual');
+  const subtabAuto = document.getElementById('subtabAuto');
+  const subtabManual = document.getElementById('subtabManual');
+
+  if (mode === 'manual') {
+    auto.style.display = 'none';
+    manual.style.display = 'flex';
+    subtabAuto.classList.remove('active');
+    subtabManual.classList.add('active');
+  } else {
+    auto.style.display = 'flex';
+    manual.style.display = 'none';
+    subtabAuto.classList.add('active');
+    subtabManual.classList.remove('active');
+  }
+}
+
+let manualPanelIndex = 0;
+
+async function addManualPanel() {
+  const sceneInput = document.getElementById('sceneInput');
+  const scene = sceneInput.value.trim();
+  const dialogue = document.getElementById('sceneDialogue').value.trim();
+  const openaiKey = document.getElementById('openaiKey').value.trim();
+  const genBtn = document.getElementById('sceneGenBtn');
+  const grid = document.getElementById('manualGrid');
+  const emptyEl = document.getElementById('manualEmpty');
+
+  if (!scene) {
+    alert('이번 컷의 장면을 설명해주세요!');
+    return;
+  }
+  if (!openaiKey.startsWith('sk-')) {
+    alert('그림 생성을 위해 OpenAI API 키(sk-...)를 입력해주세요!');
+    return;
+  }
+
+  emptyEl.style.display = 'none';
+
+  const idx = manualPanelIndex++;
+  const panelDiv = document.createElement('div');
+  panelDiv.className = 'manga-panel';
+  panelDiv.innerHTML = `
+    <div class="panel-num">#${idx + 1}</div>
+    <div class="panel-scene">${escapeHtml(scene)}</div>
+    <div class="panel-image" id="manualImg${idx}">그림 그리는 중...</div>
+    <div class="panel-dialogue">${escapeHtml(dialogue)}</div>`;
+  grid.appendChild(panelDiv);
+
+  sceneInput.value = '';
+  document.getElementById('sceneDialogue').value = '';
+  genBtn.disabled = true;
+  genBtn.textContent = '그리는 중...';
+
+  try {
+    const b64 = await generatePanelImage(openaiKey, scene);
+    document.getElementById(`manualImg${idx}`).innerHTML = `<img src="data:image/png;base64,${b64}" alt="cut ${idx + 1}">`;
+  } catch (err) {
+    document.getElementById(`manualImg${idx}`).textContent = '이미지 생성 실패';
+  }
+
+  genBtn.disabled = false;
+  genBtn.textContent = '컷 그리기';
+}
+
+function clearManualPanels() {
+  document.getElementById('manualGrid').innerHTML = '';
+  document.getElementById('manualEmpty').style.display = 'block';
+  manualPanelIndex = 0;
+}
 
 async function generateManga() {
   const topicInput = document.getElementById('mangaTopic');
