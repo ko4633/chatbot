@@ -222,6 +222,30 @@
   .send-btn:hover { background: #f0d800; }
   .send-btn:disabled { background: #eee; cursor: not-allowed; }
 
+  /* 모드 탭 */
+  .mode-tabs {
+    display: flex;
+    background: #3C1E1E;
+  }
+
+  .mode-tab {
+    flex: 1;
+    text-align: center;
+    padding: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #cbb;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    font-family: 'Noto Sans KR', sans-serif;
+  }
+
+  .mode-tab.active {
+    color: #1a1a1a;
+    background: #FEE500;
+  }
+
   /* 성격 선택 */
   .persona-bar {
     padding: 8px 16px;
@@ -249,6 +273,144 @@
     color: white;
     border-color: #3C1E1E;
   }
+
+  /* 만화 만들기 */
+  .chat-view, .manga-view {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .manga-view { display: none; }
+  .manga-view.active { display: flex; }
+  .chat-view.hidden { display: none; }
+
+  .manga-controls {
+    padding: 12px 16px;
+    background: #f8f8f8;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .manga-controls textarea {
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 13px;
+    font-family: 'Noto Sans KR', sans-serif;
+    resize: none;
+    outline: none;
+    min-height: 44px;
+  }
+
+  .manga-controls textarea:focus { border-color: #FEE500; }
+
+  .manga-options {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .manga-options select {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 6px 8px;
+    font-size: 12px;
+    font-family: 'Noto Sans KR', sans-serif;
+  }
+
+  .manga-generate-btn {
+    background: #3C1E1E;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: 'Noto Sans KR', sans-serif;
+    margin-left: auto;
+  }
+
+  .manga-generate-btn:disabled { background: #aaa; cursor: not-allowed; }
+
+  .manga-result {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    background: #b2c7d9;
+  }
+
+  .manga-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1a1a1a;
+    background: white;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+    text-align: center;
+  }
+
+  .manga-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .manga-panel {
+    background: #fffdf5;
+    border: 3px solid #3C1E1E;
+    border-radius: 8px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .manga-panel .panel-num {
+    font-size: 10px;
+    color: #999;
+    font-weight: 700;
+  }
+
+  .manga-panel .panel-scene {
+    font-size: 11px;
+    color: #666;
+    font-style: italic;
+    line-height: 1.4;
+  }
+
+  .manga-panel .panel-character {
+    font-size: 30px;
+    text-align: center;
+  }
+
+  .manga-panel .panel-dialogue {
+    background: white;
+    border: 2px solid #333;
+    border-radius: 12px;
+    padding: 6px 10px;
+    font-size: 12px;
+    line-height: 1.4;
+    position: relative;
+  }
+
+  .manga-empty {
+    text-align: center;
+    color: #4a5a68;
+    font-size: 13px;
+    padding: 40px 20px;
+  }
+
+  .manga-loading {
+    text-align: center;
+    color: #4a5a68;
+    font-size: 13px;
+    padding: 40px 20px;
+  }
 </style>
 </head>
 <body>
@@ -270,28 +432,66 @@
   </div>
   <div class="api-status" id="apiStatus">API 키를 입력하면 대화 시작됩니다</div>
 
-  <!-- 성격 선택 -->
-  <div class="persona-bar">
-    <button class="persona-btn active" onclick="setPersona(this, 'son')">👦 아들 말투</button>
-    <button class="persona-btn" onclick="setPersona(this, 'friend')">😊 친근한 친구</button>
-    <button class="persona-btn" onclick="setPersona(this, 'formal')">🎩 정중한 도우미</button>
-    <button class="persona-btn" onclick="setPersona(this, 'grandson')">👶 손주 말투</button>
+  <!-- 모드 탭 -->
+  <div class="mode-tabs">
+    <button class="mode-tab active" id="tabChat" onclick="setMode('chat')">💬 말벗 대화</button>
+    <button class="mode-tab" id="tabManga" onclick="setMode('manga')">🎨 만화 만들기</button>
   </div>
 
-  <!-- 메시지 -->
-  <div class="messages" id="messages">
-    <div class="msg bot">
-      <div class="bot-avatar">🐱</div>
-      <div class="bubble">안녕하세요 어머니~ 오늘 하루 어떠셨어요? 😊</div>
+  <!-- 대화 화면 -->
+  <div class="chat-view" id="chatView">
+
+    <!-- 성격 선택 -->
+    <div class="persona-bar">
+      <button class="persona-btn active" onclick="setPersona(this, 'son')">👦 아들 말투</button>
+      <button class="persona-btn" onclick="setPersona(this, 'friend')">😊 친근한 친구</button>
+      <button class="persona-btn" onclick="setPersona(this, 'formal')">🎩 정중한 도우미</button>
+      <button class="persona-btn" onclick="setPersona(this, 'grandson')">👶 손주 말투</button>
     </div>
+
+    <!-- 메시지 -->
+    <div class="messages" id="messages">
+      <div class="msg bot">
+        <div class="bot-avatar">🐱</div>
+        <div class="bubble">안녕하세요 어머니~ 오늘 하루 어떠셨어요? 😊</div>
+      </div>
+    </div>
+
+    <!-- 입력 -->
+    <div class="input-area">
+      <textarea id="userInput" placeholder="메시지 입력..." rows="1"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"
+        oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
+      <button class="send-btn" id="sendBtn" onclick="sendMsg()">➤</button>
+    </div>
+
   </div>
 
-  <!-- 입력 -->
-  <div class="input-area">
-    <textarea id="userInput" placeholder="메시지 입력..." rows="1"
-      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"
-      oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
-    <button class="send-btn" id="sendBtn" onclick="sendMsg()">➤</button>
+  <!-- 만화 만들기 화면 -->
+  <div class="manga-view" id="mangaView">
+
+    <div class="manga-controls">
+      <textarea id="mangaTopic" rows="2" placeholder="어떤 만화를 그리고 싶으세요? 예) 고양이가 처음 눈을 본 이야기"></textarea>
+      <div class="manga-options">
+        <select id="mangaPanelCount">
+          <option value="4">4컷</option>
+          <option value="6">6컷</option>
+          <option value="8">8컷</option>
+        </select>
+        <select id="mangaGenre">
+          <option value="따뜻하고 잔잔한 일상">일상</option>
+          <option value="유쾌하고 웃긴">코미디</option>
+          <option value="뭉클하고 감동적인">감동</option>
+          <option value="상상력 넘치는 판타지">판타지</option>
+        </select>
+        <button class="manga-generate-btn" id="mangaGenBtn" onclick="generateManga()">만화 생성</button>
+      </div>
+    </div>
+
+    <div class="manga-result" id="mangaResult">
+      <div class="manga-empty">주제를 입력하고 '만화 생성'을 눌러보세요 🎨</div>
+    </div>
+
   </div>
 
 </div>
@@ -423,6 +623,125 @@ function addTyping() {
 function removeTyping(id) {
   const el = document.getElementById(id);
   if (el) el.remove();
+}
+
+function setMode(mode) {
+  const chatView = document.getElementById('chatView');
+  const mangaView = document.getElementById('mangaView');
+  const tabChat = document.getElementById('tabChat');
+  const tabManga = document.getElementById('tabManga');
+
+  if (mode === 'manga') {
+    chatView.classList.add('hidden');
+    mangaView.classList.add('active');
+    tabChat.classList.remove('active');
+    tabManga.classList.add('active');
+  } else {
+    chatView.classList.remove('hidden');
+    mangaView.classList.remove('active');
+    tabChat.classList.add('active');
+    tabManga.classList.remove('active');
+  }
+}
+
+const mangaCharacters = ['🐱','👵','👴','👦','🐶','🐰','👧','🦋'];
+
+async function generateManga() {
+  const topicInput = document.getElementById('mangaTopic');
+  const topic = topicInput.value.trim();
+  const panelCount = document.getElementById('mangaPanelCount').value;
+  const genre = document.getElementById('mangaGenre').value;
+  const resultEl = document.getElementById('mangaResult');
+  const genBtn = document.getElementById('mangaGenBtn');
+
+  if (!topic) {
+    alert('만화 주제를 먼저 입력해주세요!');
+    return;
+  }
+  if (!apiKey) {
+    alert('먼저 API 키를 입력하고 연결 버튼을 눌러주세요!');
+    return;
+  }
+
+  genBtn.disabled = true;
+  resultEl.innerHTML = '<div class="manga-loading">만화를 그리고 있어요... 🎨</div>';
+
+  const systemPrompt = `당신은 짧은 만화(웹툰) 스토리보드 작가입니다.
+사용자의 주제로 ${genre} 분위기의 ${panelCount}컷 만화를 만드세요.
+반드시 아래 JSON 형식으로만 응답하세요. 다른 설명은 절대 붙이지 마세요.
+
+{"title": "만화 제목", "panels": [{"scene": "장면 묘사(한 문장)", "dialogue": "등장인물 대사(짧게)"}]}
+
+panels 배열의 길이는 정확히 ${panelCount}개여야 합니다.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1500,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: topic }]
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || data.error) {
+      resultEl.innerHTML = `<div class="manga-empty">❌ 오류: ${escapeHtml(data.error ? data.error.message : String(res.status))}</div>`;
+      genBtn.disabled = false;
+      return;
+    }
+
+    const raw = data.content[0].text;
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    let manga;
+    try {
+      manga = JSON.parse(jsonMatch ? jsonMatch[0] : raw);
+    } catch (parseErr) {
+      resultEl.innerHTML = '<div class="manga-empty">❌ 만화를 만드는 데 실패했어요. 다시 시도해주세요.</div>';
+      genBtn.disabled = false;
+      return;
+    }
+
+    renderManga(manga);
+  } catch (e) {
+    resultEl.innerHTML = '<div class="manga-empty">❌ 연결 오류가 났어요. API 키 확인해주세요.</div>';
+  }
+
+  genBtn.disabled = false;
+}
+
+function renderManga(manga) {
+  const resultEl = document.getElementById('mangaResult');
+  const panels = Array.isArray(manga.panels) ? manga.panels : [];
+
+  let html = `<div class="manga-title">${escapeHtml(manga.title || '제목 없음')}</div><div class="manga-grid">`;
+  panels.forEach((panel, i) => {
+    const character = mangaCharacters[i % mangaCharacters.length];
+    html += `
+      <div class="manga-panel">
+        <div class="panel-num">#${i + 1}</div>
+        <div class="panel-scene">${escapeHtml(panel.scene || '')}</div>
+        <div class="panel-character">${character}</div>
+        <div class="panel-dialogue">${escapeHtml(panel.dialogue || '')}</div>
+      </div>`;
+  });
+  html += '</div>';
+
+  resultEl.innerHTML = html;
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
 }
 </script>
 </body>
