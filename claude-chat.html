@@ -308,6 +308,17 @@
 
   .manga-controls textarea:focus { border-color: #FEE500; }
 
+  .manga-controls input {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-family: monospace;
+    outline: none;
+  }
+
+  .manga-controls input:focus { border-color: #FEE500; }
+
   .manga-options {
     display: flex;
     gap: 8px;
@@ -383,9 +394,26 @@
     line-height: 1.4;
   }
 
-  .manga-panel .panel-character {
-    font-size: 30px;
+  .manga-panel .panel-image {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    background: #eee;
+    border-radius: 4px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: #888;
     text-align: center;
+    padding: 6px;
+  }
+
+  .manga-panel .panel-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
   }
 
   .manga-panel .panel-dialogue {
@@ -471,6 +499,7 @@
   <div class="manga-view" id="mangaView">
 
     <div class="manga-controls">
+      <input type="password" id="openaiKey" placeholder="이미지 생성용 OpenAI API 키 (sk-...) 붙여넣기" />
       <textarea id="mangaTopic" rows="2" placeholder="어떤 만화를 그리고 싶으세요? 예) 고양이가 처음 눈을 본 이야기"></textarea>
       <div class="manga-options">
         <select id="mangaPanelCount">
@@ -644,13 +673,14 @@ function setMode(mode) {
   }
 }
 
-const mangaCharacters = ['🐱','👵','👴','👦','🐶','🐰','👧','🦋'];
+const MANGA_ART_STYLE = 'black and white Korean webtoon manhwa panel illustration, clean bold ink linework, high-contrast monochrome, no gray screentone, expressive dramatic line art, digital comic art, no text or letters or watermark in the image';
 
 async function generateManga() {
   const topicInput = document.getElementById('mangaTopic');
   const topic = topicInput.value.trim();
   const panelCount = document.getElementById('mangaPanelCount').value;
   const genre = document.getElementById('mangaGenre').value;
+  const openaiKey = document.getElementById('openaiKey').value.trim();
   const resultEl = document.getElementById('mangaResult');
   const genBtn = document.getElementById('mangaGenBtn');
 
@@ -659,21 +689,27 @@ async function generateManga() {
     return;
   }
   if (!apiKey) {
-    alert('먼저 API 키를 입력하고 연결 버튼을 눌러주세요!');
+    alert('먼저 상단에 Claude API 키를 입력하고 연결 버튼을 눌러주세요!');
+    return;
+  }
+  if (!openaiKey.startsWith('sk-')) {
+    alert('그림 생성을 위해 OpenAI API 키(sk-...)를 입력해주세요!');
     return;
   }
 
   genBtn.disabled = true;
-  resultEl.innerHTML = '<div class="manga-loading">만화를 그리고 있어요... 🎨</div>';
+  genBtn.textContent = '대본 쓰는 중...';
+  resultEl.innerHTML = '<div class="manga-loading">만화 대본을 쓰고 있어요... 📝</div>';
 
   const systemPrompt = `당신은 짧은 만화(웹툰) 스토리보드 작가입니다.
 사용자의 주제로 ${genre} 분위기의 ${panelCount}컷 만화를 만드세요.
 반드시 아래 JSON 형식으로만 응답하세요. 다른 설명은 절대 붙이지 마세요.
 
-{"title": "만화 제목", "panels": [{"scene": "장면 묘사(한 문장)", "dialogue": "등장인물 대사(짧게)"}]}
+{"title": "만화 제목", "panels": [{"scene": "장면 묘사(한 문장, 한국어)", "dialogue": "등장인물 대사(짧게, 한국어)", "imagePrompt": "이 장면을 그릴 AI 이미지 생성용 영어 설명. 인물 외모/행동/배경/분위기를 구체적으로. 글자나 텍스트는 넣지 말 것"}]}
 
 panels 배열의 길이는 정확히 ${panelCount}개여야 합니다.`;
 
+  let manga;
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -696,40 +732,72 @@ panels 배열의 길이는 정확히 ${panelCount}개여야 합니다.`;
     if (!res.ok || data.error) {
       resultEl.innerHTML = `<div class="manga-empty">❌ 오류: ${escapeHtml(data.error ? data.error.message : String(res.status))}</div>`;
       genBtn.disabled = false;
+      genBtn.textContent = '만화 생성';
       return;
     }
 
     const raw = data.content[0].text;
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
-    let manga;
-    try {
-      manga = JSON.parse(jsonMatch ? jsonMatch[0] : raw);
-    } catch (parseErr) {
-      resultEl.innerHTML = '<div class="manga-empty">❌ 만화를 만드는 데 실패했어요. 다시 시도해주세요.</div>';
-      genBtn.disabled = false;
-      return;
-    }
-
-    renderManga(manga);
+    manga = JSON.parse(jsonMatch ? jsonMatch[0] : raw);
   } catch (e) {
-    resultEl.innerHTML = '<div class="manga-empty">❌ 연결 오류가 났어요. API 키 확인해주세요.</div>';
+    resultEl.innerHTML = '<div class="manga-empty">❌ 대본 생성에 실패했어요. 다시 시도해주세요.</div>';
+    genBtn.disabled = false;
+    genBtn.textContent = '만화 생성';
+    return;
+  }
+
+  const panels = Array.isArray(manga.panels) ? manga.panels : [];
+  renderMangaSkeleton(manga, panels);
+
+  for (let i = 0; i < panels.length; i++) {
+    genBtn.textContent = `그림 그리는 중 (${i + 1}/${panels.length})`;
+    const imgWrap = document.getElementById(`mangaImg${i}`);
+    try {
+      const b64 = await generatePanelImage(openaiKey, panels[i].imagePrompt || panels[i].scene || topic);
+      if (imgWrap) imgWrap.innerHTML = `<img src="data:image/png;base64,${b64}" alt="panel ${i + 1}">`;
+    } catch (err) {
+      if (imgWrap) imgWrap.textContent = '이미지 생성 실패';
+    }
   }
 
   genBtn.disabled = false;
+  genBtn.textContent = '만화 생성';
 }
 
-function renderManga(manga) {
+async function generatePanelImage(openaiKey, prompt) {
+  const res = await fetch('https://api.openai.com/v1/images/generations', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${openaiKey}`
+    },
+    body: JSON.stringify({
+      model: 'dall-e-3',
+      prompt: `${MANGA_ART_STYLE}. Scene: ${prompt}`,
+      n: 1,
+      size: '1024x1024',
+      quality: 'standard',
+      response_format: 'b64_json'
+    })
+  });
+
+  const data = await res.json();
+  if (!res.ok || data.error) {
+    throw new Error(data.error ? data.error.message : String(res.status));
+  }
+  return data.data[0].b64_json;
+}
+
+function renderMangaSkeleton(manga, panels) {
   const resultEl = document.getElementById('mangaResult');
-  const panels = Array.isArray(manga.panels) ? manga.panels : [];
 
   let html = `<div class="manga-title">${escapeHtml(manga.title || '제목 없음')}</div><div class="manga-grid">`;
   panels.forEach((panel, i) => {
-    const character = mangaCharacters[i % mangaCharacters.length];
     html += `
       <div class="manga-panel">
         <div class="panel-num">#${i + 1}</div>
         <div class="panel-scene">${escapeHtml(panel.scene || '')}</div>
-        <div class="panel-character">${character}</div>
+        <div class="panel-image" id="mangaImg${i}">그림 그리는 중...</div>
         <div class="panel-dialogue">${escapeHtml(panel.dialogue || '')}</div>
       </div>`;
   });
