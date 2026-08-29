@@ -710,8 +710,6 @@ function resizeCanvas(){
   ctx.setTransform(dpr,0,0,dpr,0,0);
   if (G) render();
 }
-window.addEventListener('resize', resizeCanvas);
-
 function getVisibleBars(){
   if (!G) return [];
   var out = [];
