@@ -82,6 +82,8 @@
   .chart-wrap{flex:1;position:relative;min-width:0;background:var(--bg);}
   #chart{position:absolute;inset:0;width:100%;height:100%;display:block;}
   .flash{position:absolute;inset:0;background:rgba(239,69,74,.38);opacity:0;pointer-events:none;transition:opacity .06s linear;}
+  .shake{animation:shake .18s ease-in-out;}
+  @keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-4px);}75%{transform:translateX(4px);}}
   .flash.show{opacity:1;transition:none;}
 
   .chat-panel{width:220px;flex-shrink:0;border-left:1px solid var(--line);display:flex;flex-direction:column;background:var(--panel);min-height:0;}
@@ -106,6 +108,7 @@
     .pos-bar{padding:5px 10px 6px;gap:4px;}
     .pos-info{font-size:11px;gap:6px 12px;}
     .lev-row{gap:6px;}
+    .lev-presets{display:none;}
     .pct-row{gap:4px;}
     .pct-row button{padding:3px 0;font-size:10px;}
     .action-row button{padding:6px 0;font-size:12px;}
@@ -124,6 +127,10 @@
   .pct-row{display:flex;gap:6px;}
   .pct-row button{flex:1;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:6px 0;font-size:11.5px;color:var(--dim);cursor:pointer;}
   .pct-row button.active{border-color:var(--acc);color:var(--acc);}
+  .lev-presets{display:flex;gap:4px;}
+  .lev-presets button{flex:1;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:4px 0;font-size:10.5px;color:var(--dim);cursor:pointer;}
+  .lev-presets button.active{border-color:var(--acc);color:var(--acc);}
+  .lev-presets button:disabled{opacity:.35;cursor:default;}
   .action-row{display:grid;grid-template-columns:1fr 84px 1fr;gap:8px;}
   .action-row button{border:none;border-radius:8px;padding:12px 0;font-weight:800;font-size:14px;cursor:pointer;}
   .btn-long{background:var(--up);color:#04140c;}
@@ -205,6 +212,14 @@
         <input type="range" id="lev-slider" min="1" max="100" value="10">
         <span class="levval mono" id="lev-val">10x</span>
       </div>
+      <div class="lev-presets" id="lev-presets">
+        <button data-lev="5">5x</button>
+        <button data-lev="10" class="active">10x</button>
+        <button data-lev="25">25x</button>
+        <button data-lev="50">50x</button>
+        <button data-lev="75">75x</button>
+        <button data-lev="100">100x</button>
+      </div>
       <div class="pct-row">
         <button data-pct="10">10%</button>
         <button data-pct="25" class="active">25%</button>
@@ -279,6 +294,7 @@ SCENARIOS.forEach(function(s){ s.dropPct = Math.round((Math.min.apply(null,s.pat
 
 var CHAT_LINES = ['가즈아','존버는 승리한다','손절각인데','물타기 가자','숏치고 지방간다','상폐각','고점매수 인증','저점매수 성공함','치킨값 날아감','내 코인만 빨간불','형들 나 이자 나가리됨','바닥은 없다','청산맵 어디감','떡상 가나요','롱치고 숏 당함','물렸습니다 도와주세요','국장 가즈아','풀매수 간다','이거 사면 오르나요','반대로만 하면 부자됨','이걸 왜 아직도 들고있냐','손 떨려서 못 누르겠다','나만 숏타치나','전액 몰빵 가즈아','계좌 인증 함','존버가 답이다','내일 오른다에 한표','오늘도 물렸습니다'];
 var CHAT_NICK = ['ㅇㅇ','ㅁㅊ','ㅋㅋ','개미','존버맨','청산왕','ㅂㅅ','익명','국장러','물린놈'];
+var NEWS_LINES = ['속보: 대량 매도 물량 유입','고래 지갑에서 대규모 이체 감지','거래소 서버 다운 신고 속출','청산 캐스케이드 발생','패닉 셀 확산 중','공포탐욕지수 "극단적 공포"','역대급 거래량 폭증','숏스퀴즈 발생','호가창 순삭 중'];
 
 /* ===================== 상태 ===================== */
 var appState = { balance:1000, progress:0, history:{} };
@@ -332,12 +348,18 @@ function generateBars(scenario){
     dev = dev*0.87 + (r()*2-1)*vol;
     var close = base*(1+dev);
     var open = prev;
+    // 쇼크 캔들: 시드 고정 확률로 이번 봉의 움직임을 증폭시켜 급발진/급락 연출 (재현성 유지)
+    var isShock = (i>3 && i<n-4) && (r() < 0.045);
+    if (isShock){
+      var shockMult = 2.0 + r()*1.8;
+      close = open + (close-open)*shockMult;
+    }
     var body = Math.abs(close-open);
     var high = Math.max(open,close) + body*r()*0.9 + base*vol*r()*0.45;
     var low  = Math.min(open,close) - body*r()*0.9 - base*vol*r()*0.45;
     low = Math.max(low, base*0.05); // 안전장치: 가격이 0/음수로 붕괴하지 않도록
-    var volume = (0.35+r()) * (1 + body/base*45);
-    bars.push({open:open, high:high, low:low, close:close, volume:volume, base:base});
+    var volume = (0.35+r()) * (1 + body/base*45) * (isShock ? 1.7 : 1);
+    bars.push({open:open, high:high, low:low, close:close, volume:volume, base:base, shock:isShock});
     prev = close;
   }
   return bars;
@@ -472,6 +494,7 @@ function startScenario(idx){
   clearChat();
   document.getElementById('lev-slider').value = 10;
   document.getElementById('lev-val').textContent = '10x';
+  document.querySelectorAll('.lev-presets button').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-lev')==='10'); });
   document.querySelectorAll('.pct-row button').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-pct')==='25'); });
   document.querySelectorAll('.speedbtns button').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-speed')==='1'); });
   updatePositionUI();
@@ -520,6 +543,46 @@ function closePosition(auto){
   updatePositionUI();
 }
 
+function partialClose(fraction){
+  if (!G || G.ended || !G.position) return;
+  var p = G.position;
+  var qtyToClose = p.qty*fraction;
+  var pnlPortion = (G.currentPrice-p.entryPrice)*qtyToClose*(p.side==='long'?1:-1);
+  var marginPortion = p.margin*fraction;
+  var fee = qtyToClose*G.currentPrice*FEE;
+  G.totalFees += fee;
+  var ret = Math.max(0, marginPortion+pnlPortion-fee);
+  appState.balance += ret;
+  p.qty -= qtyToClose;
+  p.margin -= marginPortion;
+  p.notional = p.qty*p.entryPrice;
+  toast(Math.round(fraction*100)+'% 청산: '+fmtWon(ret)+' 회수');
+  if (p.qty <= 1e-9 || p.margin <= 0){ G.position = null; }
+  updatePositionUI();
+}
+
+function addMargin(){
+  if (!G || G.ended || !G.position) return;
+  var p = G.position;
+  var addMarginAmt = Math.floor(appState.balance*G.selectedPct/100);
+  if (addMarginAmt < 1){ toast('추가 투입할 잔고가 부족합니다'); return; }
+  var addNotional = addMarginAmt*p.leverage;
+  var fee = addNotional*FEE;
+  var addQty = addNotional/G.currentPrice;
+  var newNotional = p.notional+addNotional;
+  var newEntry = (p.entryPrice*p.notional + G.currentPrice*addNotional)/newNotional;
+  appState.balance -= addMarginAmt;
+  p.margin += (addMarginAmt-fee);
+  p.qty += addQty;
+  p.notional = newNotional;
+  p.entryPrice = newEntry;
+  p.liqPrice = p.side==='long' ? newEntry*(1-1/p.leverage+MMR) : newEntry*(1+1/p.leverage-MMR);
+  G.totalFees += fee;
+  G.entryCount++;
+  toast('물타기 추가: '+fmtWon(addMarginAmt));
+  updatePositionUI();
+}
+
 function checkLiquidation(){
   if (!G.position || G.ended) return;
   var p = G.position;
@@ -533,7 +596,7 @@ function checkLiquidation(){
 
 function liquidatePosition(){
   G.position = null;
-  flashRed();
+  flashScreen('239,69,74', 0.38, 120);
   toast('강제 청산!');
   chatExplosion();
   updatePositionUI();
@@ -544,10 +607,21 @@ function liquidatePosition(){
   }
 }
 
-function flashRed(){
+function flashScreen(rgb, opacity, durationMs){
   var el = document.getElementById('flash');
+  el.style.background = 'rgba('+rgb+','+opacity+')';
   el.classList.add('show');
-  setTimeout(function(){ el.classList.remove('show'); }, 120);
+  setTimeout(function(){ el.classList.remove('show'); }, durationMs);
+}
+
+function shockEffect(bar){
+  var up = bar.close >= bar.open;
+  flashScreen(up ? '32,178,108' : '239,69,74', 0.22, 180);
+  var wrap = document.getElementById('chart-wrap');
+  wrap.classList.remove('shake'); void wrap.offsetWidth; wrap.classList.add('shake');
+  toast((up?'📈 ':'📉 ')+NEWS_LINES[Math.floor(Math.random()*NEWS_LINES.length)]);
+  pushChat(CHAT_NICK[Math.floor(Math.random()*CHAT_NICK.length)], up?'떡상이다 가즈아 ㅋㅋㅋ':'다 죽었다 ㅋㅋㅋ');
+  pushChat(CHAT_NICK[Math.floor(Math.random()*CHAT_NICK.length)], '방금 그거 봤냐');
 }
 
 /* ===================== 프레임 진행 ===================== */
@@ -574,6 +648,7 @@ function finalizeBar(){
   }
   checkLiquidation();
   if (G.ended) return;
+  if (bar.shock) shockEffect(bar);
   if (G.barIndex >= G.bars.length){
     endScenario();
     return;
@@ -685,6 +760,7 @@ function updatePositionUI(){
   var btnShort = document.getElementById('btn-short');
   var btnFlat = document.getElementById('btn-flat');
   var levSlider = document.getElementById('lev-slider');
+  var levPresets = document.querySelectorAll('.lev-presets button');
 
   if (!G || !G.position){
     sideEl.className = 'side-tag none mono';
@@ -692,8 +768,10 @@ function updatePositionUI(){
     entryEl.textContent = '';
     marginEl.textContent = '';
     pnlEl.textContent = '';
+    btnLong.textContent = '롱'; btnShort.textContent = '숏'; btnFlat.textContent = '청산';
     btnLong.disabled = false; btnShort.disabled = false; btnFlat.disabled = true;
     levSlider.disabled = false;
+    levPresets.forEach(function(b){ b.disabled = false; });
     return;
   }
   var p = G.position;
@@ -705,8 +783,10 @@ function updatePositionUI(){
   marginEl.innerHTML = '<span class="k">증거금</span>'+fmtWon(p.margin);
   pnlEl.innerHTML = '<span class="k">PNL</span>'+fmtWonSigned(pnl)+' ('+fmtPct(roe)+')';
   pnlEl.style.color = pnl>=0 ? 'var(--up)' : 'var(--dn)';
-  btnLong.disabled = true; btnShort.disabled = true; btnFlat.disabled = false;
+  btnLong.textContent = '물타기'; btnShort.textContent = '50%청산'; btnFlat.textContent = '전량청산';
+  btnLong.disabled = false; btnShort.disabled = false; btnFlat.disabled = false;
   levSlider.disabled = true;
+  levPresets.forEach(function(b){ b.disabled = true; });
 }
 
 function updateHeader(){
@@ -974,14 +1054,36 @@ document.querySelectorAll('.pct-row button').forEach(function(btn){
   });
 });
 
+function setLeverage(lev){
+  if (!G) return;
+  G.selectedLev = lev;
+  document.getElementById('lev-slider').value = lev;
+  document.getElementById('lev-val').textContent = lev+'x';
+  document.querySelectorAll('.lev-presets button').forEach(function(b){
+    b.classList.toggle('active', parseInt(b.getAttribute('data-lev'),10)===lev);
+  });
+}
+
 document.getElementById('lev-slider').addEventListener('input', function(e){
   if (!G) return;
-  G.selectedLev = parseInt(e.target.value,10);
-  document.getElementById('lev-val').textContent = G.selectedLev+'x';
+  setLeverage(parseInt(e.target.value,10));
 });
 
-document.getElementById('btn-long').addEventListener('click', function(){ enterPosition('long'); });
-document.getElementById('btn-short').addEventListener('click', function(){ enterPosition('short'); });
+document.querySelectorAll('.lev-presets button').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    if (!G || G.position) return;
+    setLeverage(parseInt(btn.getAttribute('data-lev'),10));
+  });
+});
+
+document.getElementById('btn-long').addEventListener('click', function(){
+  if (!G || G.ended) return;
+  if (G.position) addMargin(); else enterPosition('long');
+});
+document.getElementById('btn-short').addEventListener('click', function(){
+  if (!G || G.ended) return;
+  if (G.position) partialClose(0.5); else enterPosition('short');
+});
 document.getElementById('btn-flat').addEventListener('click', function(){ if (G && G.position) closePosition(false); });
 
 /* ===================== 초기화 ===================== */
