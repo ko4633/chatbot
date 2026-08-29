@@ -96,6 +96,21 @@
       background:rgba(22,26,30,.72);border-left:none;border-top:1px solid var(--line);backdrop-filter:blur(2px);}
   }
 
+  /* 가로로 짧은 화면(랜드스케이프 폰)용 압축 레이아웃 - 차트가 안 보이는 사고 방지 */
+  @media (max-height:480px){
+    .chat-panel{height:74px;}
+    .chat-head{padding:4px 8px;font-size:10.5px;}
+    .chat-list{padding:3px 8px;gap:2px;}
+    .chat-line{font-size:10.5px;}
+    .game-header{padding:4px 8px;gap:8px;}
+    .pos-bar{padding:5px 10px 6px;gap:4px;}
+    .pos-info{font-size:11px;gap:6px 12px;}
+    .lev-row{gap:6px;}
+    .pct-row{gap:4px;}
+    .pct-row button{padding:3px 0;font-size:10px;}
+    .action-row button{padding:6px 0;font-size:12px;}
+  }
+
   .pos-bar{flex-shrink:0;background:var(--panel);border-top:1px solid var(--line);padding:9px 12px 12px;display:flex;flex-direction:column;gap:8px;}
   .pos-info{display:flex;flex-wrap:wrap;gap:10px 16px;font-size:12px;align-items:baseline;}
   .pos-info .side-tag{font-weight:800;padding:1px 6px;border-radius:4px;font-size:11.5px;}
@@ -249,15 +264,24 @@ var SCENARIOS = [
    desc:'테라·루나가 하루아침에 0원이 됐다. 비트코인도 그 불길을 피하지 못했다.'},
   {id:'ftx', name:'FTX 파산', date:'2022.11.09', seed:1109, bars:175, vol:0.015,
    path:[20600,20100,18300,17400,15600,16800,16400],
-   desc:'세계 3대 거래소가 일주일 만에 파산했다. 믿었던 도끼에 발등 찍힌 날.'}
+   desc:'세계 3대 거래소가 일주일 만에 파산했다. 믿었던 도끼에 발등 찍힌 날.'},
+  {id:'china2013', name:'차이나 쇼크', date:'2013.12.05', seed:1205, bars:175, vol:0.017,
+   path:[1200,1150,900,650,580,650,700],
+   desc:'중국 인민은행이 금융기관의 비트코인 거래를 전면 금지했다. 하루 만에 반토막, 그게 진짜 시작이었다.'},
+  {id:'celsius', name:'셀시우스 런', date:'2022.06.13', seed:613, bars:180, vol:0.015,
+   path:[31000,29500,26800,22800,20200,17600,19200],
+   desc:'셀시우스가 출금을 막았다. 예금인 줄 알았던 돈이 사실 그런 게 아니었다.'},
+  {id:'carrytrade', name:'엔캐리 대학살', date:'2024.08.05', seed:805, bars:175, vol:0.016,
+   path:[65000,61800,58200,53500,49200,54800,57500],
+   desc:'엔캐리 트레이드가 청산되던 날, 전 세계 증시와 함께 비트코인도 고꾸라졌다.'}
 ];
 SCENARIOS.forEach(function(s){ s.dropPct = Math.round((Math.min.apply(null,s.path)-s.path[0])/s.path[0]*100); });
 
-var CHAT_LINES = ['가즈아','존버는 승리한다','손절각인데','물타기 가자','숏치고 지방간다','상폐각','고점매수 인증','저점매수 성공함','치킨값 날아감','내 코인만 빨간불','형들 나 이자 나가리됨','바닥은 없다','청산맵 어디감','떡상 가나요','롱치고 숏 당함','물렸습니다 도와주세요','국장 가즈아','풀매수 간다','이거 사면 오르나요','반대로만 하면 부자됨'];
+var CHAT_LINES = ['가즈아','존버는 승리한다','손절각인데','물타기 가자','숏치고 지방간다','상폐각','고점매수 인증','저점매수 성공함','치킨값 날아감','내 코인만 빨간불','형들 나 이자 나가리됨','바닥은 없다','청산맵 어디감','떡상 가나요','롱치고 숏 당함','물렸습니다 도와주세요','국장 가즈아','풀매수 간다','이거 사면 오르나요','반대로만 하면 부자됨','이걸 왜 아직도 들고있냐','손 떨려서 못 누르겠다','나만 숏타치나','전액 몰빵 가즈아','계좌 인증 함','존버가 답이다','내일 오른다에 한표','오늘도 물렸습니다'];
 var CHAT_NICK = ['ㅇㅇ','ㅁㅊ','ㅋㅋ','개미','존버맨','청산왕','ㅂㅅ','익명','국장러','물린놈'];
 
 /* ===================== 상태 ===================== */
-var appState = { balance:1000, progress:0 };
+var appState = { balance:1000, progress:0, history:{} };
 var G = null; // 진행중인 게임 세션
 
 /* ===================== 유틸 ===================== */
@@ -365,9 +389,11 @@ function renderMenu(){
     var cleared = i < appState.progress;
     var locked = i > appState.progress;
     card.className = 'scenario-card'+(cleared?' cleared':'')+(locked?' locked':'');
+    var hist = appState.history[s.id];
+    var statusText = locked ? 'LOCK' : (cleared && hist ? hist.grade+' '+fmtPct(hist.pnlPct) : (cleared ? 'CLEAR' : ''));
     card.innerHTML =
       '<div class="row1"><span class="name">'+s.name+'</span>'+
-      '<span class="dateWrap"><span class="date mono">'+s.date+'</span><span class="status mono">'+(cleared?'CLEAR':(locked?'LOCK':''))+'</span></span></div>'+
+      '<span class="dateWrap"><span class="date mono">'+s.date+'</span><span class="status mono">'+statusText+'</span></span></div>'+
       '<div class="desc">'+s.desc+'</div>'+
       '<div class="tag mono">예상 낙폭 '+s.dropPct+'%</div>';
     if (!cleared && !locked){
@@ -591,6 +617,7 @@ function endScenario(){
   var pnl = appState.balance - G.startBalance;
   var pnlPct = G.startBalance>0 ? pnl/G.startBalance*100 : 0;
   appState.progress++;
+  appState.history[G.scenario.id] = { grade: getGrade(pnlPct,false).g, pnlPct: pnlPct };
   showResult({
     scenario: G.scenario, balance: appState.balance, pnl: pnl, pnlPct: pnlPct,
     entryCount: G.entryCount, maxLeverage: G.maxLeverage, totalFees: G.totalFees,
@@ -636,10 +663,10 @@ function showResult(data){
   var menuBtn = document.getElementById('res-menu');
   if (data.gameOver){
     nextBtn.textContent = '처음부터 다시';
-    nextBtn.onclick = function(){ appState.balance=1000; appState.progress=0; showScreen('menu'); renderMenu(); };
+    nextBtn.onclick = function(){ appState.balance=1000; appState.progress=0; appState.history={}; showScreen('menu'); renderMenu(); };
   } else if (data.isFinal){
     nextBtn.textContent = '새 판 시작';
-    nextBtn.onclick = function(){ appState.balance=1000; appState.progress=0; showScreen('menu'); renderMenu(); };
+    nextBtn.onclick = function(){ appState.balance=1000; appState.progress=0; appState.history={}; showScreen('menu'); renderMenu(); };
   } else {
     nextBtn.textContent = '다음 시나리오 → '+SCENARIOS[appState.progress].name;
     nextBtn.onclick = function(){ startScenario(appState.progress); };
