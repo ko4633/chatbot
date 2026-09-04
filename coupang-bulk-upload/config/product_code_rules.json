@@ -1,0 +1,20 @@
+{
+  "_comment": "품번 구조: [접두부(가변)] + [상품종류코드 2자] + [시즌코드 2~3자] + [일련번호]. 확인되지 않은 코드는 절대 추측하지 말고 UNKNOWN으로 둔다. 새 코드가 확인되면 이 파일에만 추가하면 된다.",
+
+  "productTypeCodes": {
+    "KA": "사파리",
+    "FU": "자켓",
+    "DL": "데님_롱",
+    "DA": "데님_A라인"
+  },
+
+  "sizeRuleGroups": {
+    "EIGHT_SIZE_WAIST": ["DL", "DA"]
+  },
+
+  "seasonCodes": {
+    "26F": { "label": "2026 신상 Fall", "carryover": false, "year": 2026, "seasonName": "Fall" },
+    "5F": { "label": "이월 Fall", "carryover": true, "year": null, "seasonName": "Fall" },
+    "4F": { "label": "이월 Fall", "carryover": true, "year": null, "seasonName": "Fall" }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "_comment": "고정값 (확정). 실제 쿠팡 엑셀 필드의 정확한 표기/validation 규칙에 맞춘 값만 사용. 임의로 0/999/무제한 같은 값을 넣지 않는다.",
+
+  "brand": "트레몰로",
+  "manufacturer": "세정",
+  "productStatus": "새 상품",
+  "stockPerOption": 10,
+  "outboundShippingTimeDay": 2,
+  "adultOnly": "N",
+  "taxType": "Y",
+  "parallelImported": "N",
+  "overseasPurchased": "N",
+  "maximumBuyForPerson": null,
+  "_maximumBuyForPerson_note": "쿠팡 가이드: 입력하지 않으면 0(제한없음)으로 자동 입력됨. 그래서 빈칸(null)으로 두고 셀에 아예 안 씀. 임의로 0을 명시적으로 써넣지 않음(가이드상 0=제한없음이라 값은 같지만, '입력 안함'과 '0 명시 입력'을 구분해서 원칙을 지킴)."
+}
