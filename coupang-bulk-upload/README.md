@@ -4,9 +4,19 @@
 색상×사이즈 옵션을 자동생성해서 쿠팡 공식 Excel에 채워주는 로컬 프로그램.
 **Coupang Open API는 쓰지 않는다.** 최종 결과물은 사람이 WING에 직접 업로드한다.
 
-## 지금 상태 (STEP 7까지 완료: 최소 end-to-end prototype)
+## 지금 상태 (STEP 10까지 완료: 1~5단계 워크플로우 전체 왕복 동작)
 
-동작 확인된 것:
+사용자가 정의한 작업 순서 그대로 동작 확인됨:
+
+1. **이미지 폴더 + 쿠팡 엑셀 양식 입력** → `image_grouper` + 실제 `.xlsm` 읽기
+2. **자동입력 vs 사용자입력 구분해서 제공** → `missing_input_excel.generate_missing_input_excel()`
+   부족한 상품만 모아서, 이미 아는 값은 채워두고 부족한 컬럼만 빈칸으로 `추가입력필요.xlsx` 생성
+3. **사용자가 보완해서 재입력** → `missing_input_excel.import_missing_input_excel()`
+4. **오류체크(재검증)** → `pipeline.apply_overrides_and_revalidate()`: merge 후 옵션 재생성 + 재검증,
+   여전히 부족하면 다시 blocked로 남김 (일부만 채워도 나머지 상품은 안 막힘)
+5. **완벽한 엑셀 완성** → `excel_writer.write_products()`
+
+그 외 동작 확인된 것:
 
 - 이미지 폴더 스캔 → 품번(productCode) 기준 자동 grouping, `_1~_9` 역할 고정 매핑
 - 품번 파싱 → 상품종류코드/시즌코드 인식 (`config/product_code_rules.json`, 모르는 코드는 절대 추측 안 하고 `UNKNOWN`)
@@ -20,9 +30,10 @@
 
 아직 안 만든 것 (다음 단계):
 
-- Vision(GPT) 라벨 이미지(`_8`/`_9`) 분석 — 실제 라벨 사진 샘플 + OpenAI API 키 필요
-- `추가입력필요.xlsx` round-trip (지금은 `UserInput`으로 색상/가격을 코드에서 직접 주입해서 테스트만 함)
-- 로컬 웹 UI
+- Vision(GPT) 라벨 이미지(`_8`/`_9`) 분석 — 실제 라벨 사진 샘플 + OpenAI API 키 필요 (지금은 소재/제조국 등도
+  전부 `추가입력필요.xlsx`를 통한 수동입력으로 처리됨. Vision이 붙으면 이 컬럼들이 자동으로 채워져서
+  `추가입력필요.xlsx`에 아예 안 나타나게 됨)
+- 로컬 웹 UI (지금은 Python 함수 호출/pytest로만 검증됨)
 - 진짜 WING에서 방금 다운로드한 원본 파일로의 재검증 (지금 쓰는 `fixtures/coupang_template_v4.6.xlsm`은 예시/참고 파일이라 매크로가 비어있음 — 실제 파일은 매크로가 있을 수 있음)
 
 ## 실행
@@ -49,9 +60,10 @@ coupang-bulk-upload/
 │   ├── product_code_parser.py    # 품번 문자열 파싱 (config 기반, 모르는 코드는 UNKNOWN)
 │   ├── size_rules.py             # 상품종류 -> 사이즈 목록
 │   ├── option_expander.py        # 색상 x 사이즈 -> 옵션 row 생성
-│   ├── validator.py              # ERROR/WARNING 검증
+│   ├── validator.py               # ERROR/WARNING 검증
+│   ├── missing_input_excel.py    # 추가입력필요.xlsx 생성 / 재import (2~3단계)
 │   ├── excel_writer.py           # 실제 쿠팡 엑셀에 값 쓰기 (openpyxl, 헤더 기반 컬럼 매핑)
-│   └── pipeline.py               # 위 전부를 이어붙인 오케스트레이터
+│   └── pipeline.py               # 위 전부를 이어붙인 오케스트레이터 (1~5단계 전체)
 ├── fixtures/
 │   └── coupang_template_v4.6.xlsm  # 실제 쿠팡 공식 양식 샘플 (사용자 제공)
 └── tests/                        # 단위테스트 + 통합테스트(실제 xlsm에 쓰고 원본보존 검증)
