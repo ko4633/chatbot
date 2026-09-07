@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from core.image_grouper import group_images
 from core.models import Severity
 
@@ -55,6 +57,37 @@ def test_unparseable_filename_reported_without_crashing_batch(tmp_path):
 
     assert "__UNMATCHED__" in groups
     assert any("파일명 규칙" in i.message for i in groups["__UNMATCHED__"].issues)
+
+
+def test_labels_are_last_two_regardless_of_photo_count(tmp_path):
+    # 실사용 확인: TRHKA5F841156은 사진이 9장이 아니라 7장이고, 라벨이 _8/_9가 아니라 _6/_7(마지막 2장)이었음
+    for i in range(1, 8):
+        touch(tmp_path / f"TRHKA5F841156_{i}.jpg")
+
+    groups = group_images(tmp_path)
+    g = groups["TRHKA5F841156"]
+
+    assert g.images.representative.endswith("_1.jpg")
+    assert [Path(p).name for p in g.images.additional] == [
+        "TRHKA5F841156_2.jpg",
+        "TRHKA5F841156_3.jpg",
+        "TRHKA5F841156_4.jpg",
+        "TRHKA5F841156_5.jpg",
+    ]
+    assert g.images.material_label.endswith("_6.jpg")
+    assert g.images.country_label.endswith("_7.jpg")
+
+
+def test_too_few_images_to_detect_labels_is_warning(tmp_path):
+    touch(tmp_path / "ONLYTWO_1.jpg")
+    touch(tmp_path / "ONLYTWO_2.jpg")
+
+    groups = group_images(tmp_path)
+    g = groups["ONLYTWO"]
+
+    assert g.images.material_label is None
+    assert g.images.country_label is None
+    assert any(i.severity == Severity.WARNING and "라벨 사진을 판별할 수 없음" in i.message for i in g.issues)
 
 
 def test_unsupported_extension_is_error(tmp_path):
