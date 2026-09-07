@@ -32,6 +32,11 @@ def validate_product(product: Product) -> list[str]:
         product.add_issue(Severity.ERROR, "sale_price", "판매가격 미입력 (사용자 입력 필요)")
         product.missing_fields.append("sale_price")
 
+    if product.reference_price is None:
+        # 쿠팡 엑셀 양식 3행 기준 "할인율기준가"는 필수 항목이다 (실제 템플릿에서 확인함).
+        product.add_issue(Severity.ERROR, "reference_price", "할인율기준가(정상가) 미입력 (사용자 입력 필요)")
+        product.missing_fields.append("reference_price")
+
     if not product.material:
         product.add_issue(Severity.WARNING, "material", "소재 정보 없음 (Vision 미분석 또는 인식 실패)")
         product.missing_fields.append("material")

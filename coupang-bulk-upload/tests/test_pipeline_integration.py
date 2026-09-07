@@ -43,7 +43,7 @@ def sample_images(tmp_path):
 def test_pipeline_end_to_end_writes_real_template(sample_images, tmp_path):
     user_inputs = {
         "TCNKA26F841104": UserInput(color="네이비", sale_price=29900, reference_price=39900),
-        "ABCDL26F999999": UserInput(color="차콜", sale_price=59900),
+        "ABCDL26F999999": UserInput(color="차콜", sale_price=59900, reference_price=79900),
         # TRNFU5F641609 은 색상 없음 -> blocked 로 가야 정상
     }
 

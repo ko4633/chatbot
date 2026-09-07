@@ -52,6 +52,7 @@ def test_full_workflow_1_to_5(images, tmp_path):
     col = {h: i + 1 for i, h in enumerate(headers)}
     ws.cell(row=2, column=col["색상"]).value = "네이비"
     ws.cell(row=2, column=col["판매가격"]).value = 29900
+    ws.cell(row=2, column=col["할인율기준가"]).value = 39900
     if "소재" in col:
         ws.cell(row=2, column=col["소재"]).value = "폴리에스터 100%"
     if "제조국" in col:

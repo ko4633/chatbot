@@ -69,6 +69,7 @@ _RECOMPUTED_FIELDS = {
     "options",
     "options.stock",
     "sale_price",
+    "reference_price",
     "material",
     "country_of_origin",
     "internal_category_code",
