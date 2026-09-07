@@ -122,7 +122,9 @@ def test_pipeline_end_to_end_writes_real_template(sample_images, tmp_path):
     assert out_target.cell(row=ka_row, column=12).value == "사이즈"  # 옵션유형2
     assert out_target.cell(row=ka_row, column=62).value == 29900  # 판매가격
     assert out_target.cell(row=ka_row, column=65).value == 10  # 재고수량
-    assert out_target.cell(row=ka_row, column=104).value == "TCNKA26F841104_1.jpg"  # 대표이미지 파일명
+    # 이미지 컬럼은 절대 자동으로 안 채움: WING이 파일명 중복 시 예측불가 랜덤 접미사를 붙이므로
+    # (실사용 확인됨) 사용자가 WING 업로드 후 '복사' 버튼 값을 직접 붙여넣어야 함
+    assert out_target.cell(row=ka_row, column=104).value is None
 
     dl_row = find_row("차콜", "076cm(30인치)")
     assert out_target.cell(row=dl_row, column=2).value == "ABCDL26F999999"
