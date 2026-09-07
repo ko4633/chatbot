@@ -1,8 +1,20 @@
+import zipfile
 from pathlib import Path
 
 import openpyxl
 
 from core.models import Product
+
+
+def _has_real_vba_project(path: str | Path) -> bool:
+    """확장자가 .xlsm이어도 실제 vbaProject.bin이 없는 파일이 있다 (예: 참고/예시용 사본).
+    이런 파일을 keep_vba=True로 저장하면 openpyxl이 존재하지 않는 vbaProject.bin을 가리키는
+    깨진 관계(relationship)를 만들어서 엑셀이 열 때 복구 오류를 띄운다. 그래서 실제로
+    vbaProject.bin이 있는지 열어보기 전에 확인하고, 없으면 keep_vba를 강제로 꺼야 한다."""
+    if not str(path).lower().endswith(".xlsm"):
+        return False
+    with zipfile.ZipFile(path) as zf:
+        return "xl/vbaProject.bin" in zf.namelist()
 
 HEADER_ROW = 2
 GROUP_ROW = 1
@@ -55,8 +67,7 @@ def write_products(
     products: list[Product],
     fixed_values: dict,
 ) -> None:
-    is_macro_enabled = str(template_path).lower().endswith(".xlsm")
-    wb = openpyxl.load_workbook(template_path, keep_vba=is_macro_enabled)
+    wb = openpyxl.load_workbook(template_path, keep_vba=_has_real_vba_project(template_path))
     ws = wb[sheet_name]
 
     header_map = build_header_map(ws)
