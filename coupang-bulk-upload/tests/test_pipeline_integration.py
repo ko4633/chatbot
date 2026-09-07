@@ -122,8 +122,7 @@ def test_pipeline_end_to_end_writes_real_template(sample_images, tmp_path):
     assert out_target.cell(row=ka_row, column=12).value == "사이즈"  # 옵션유형2
     assert out_target.cell(row=ka_row, column=62).value == 29900  # 판매가격
     assert out_target.cell(row=ka_row, column=65).value == 10  # 재고수량
-    # 이미지 컬럼은 일부러 비워둠: WING 업로드 후 파일명이 달라지므로 사용자가 직접 채워야 함
-    assert out_target.cell(row=ka_row, column=104).value is None
+    assert out_target.cell(row=ka_row, column=104).value == "TCNKA26F841104_1.jpg"  # 대표이미지 파일명
 
     dl_row = find_row("차콜", "076cm(30인치)")
     assert out_target.cell(row=dl_row, column=2).value == "ABCDL26F999999"

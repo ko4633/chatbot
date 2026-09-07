@@ -20,6 +20,9 @@ HEADER_ROW = 2
 GROUP_ROW = 1
 DATA_START_ROW = 5
 
+# 실제 템플릿 1행 그룹셀 텍스트 그대로 (줄바꿈/안내문구 포함). 헤더 매핑 키로 사용하려면 정확히 일치해야 함.
+GROUP_IMAGES = "이미지\n*파일 업로드 방식이 변경되었으니 아래 안내를 참조하세요."
+
 
 def build_header_map(ws) -> dict[tuple[str, str], int]:
     """(그룹명, 필드명) -> 컬럼번호. 그룹은 1행 병합셀 기준으로 컬럼 범위에 forward-fill."""
@@ -106,9 +109,16 @@ def write_products(
             ]
             ws.cell(row=row, column=_col(header_map, "구성 정보", "업체상품코드")).value = product.product_code
 
-            # 이미지(대표/추가) 컬럼은 일부러 안 채운다: WING에 이미지를 업로드하면 로컬 파일명과
-            # 다른 파일명/경로가 생성되므로, 그 값은 사용자가 WING 업로드 후 직접 붙여넣어야 한다.
-            # 로컬 파일명을 그대로 써넣으면 실제로는 틀린 값이 들어가게 된다.
+            # WING '이미지(파일) 업로드' 창에서 업로드한 원본 파일명이 그대로 표시/복사되는 것을
+            # 실제 화면으로 확인함 (2026-09 스크린샷). 즉 로컬 파일명 = WING 파일명이라 그대로 써도 됨.
+            if product.images.representative:
+                ws.cell(row=row, column=_col(header_map, GROUP_IMAGES, "대표(옵션)이미지")).value = Path(
+                    product.images.representative
+                ).name
+            if product.images.additional:
+                ws.cell(row=row, column=_col(header_map, GROUP_IMAGES, "추가이미지")).value = ",".join(
+                    Path(p).name for p in product.images.additional
+                )
 
             row += 1
 
