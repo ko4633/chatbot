@@ -1,8 +1,18 @@
+import { balanceData } from '../core/balance';
 import { factionsData, regionsData } from '../core/data';
 import type { GameState, RegionId } from '../core/types';
 
+export interface BottomSheetHandlers {
+  onConscript(regionId: RegionId): void;
+  onDomestic(regionId: RegionId): void;
+  onFortify(regionId: RegionId): void;
+  onMarchBegin(fromRegionId: RegionId): void;
+  onMarchTarget(toRegionId: RegionId): void;
+  onMarchCancel(): void;
+}
+
 export interface BottomSheetHandle {
-  show(regionId: RegionId, state: GameState): void;
+  show(regionId: RegionId, state: GameState, marchFrom: RegionId | null): void;
   clear(): void;
 }
 
@@ -14,14 +24,14 @@ const TERRAIN_LABEL: Record<string, string> = {
   external: '외부'
 };
 
-export function createBottomSheet(container: HTMLElement): BottomSheetHandle {
+export function createBottomSheet(container: HTMLElement, handlers: BottomSheetHandlers): BottomSheetHandle {
   container.className = 'bottom-sheet empty';
   container.textContent = '지역을 눌러 정보를 확인한다.';
 
   const byId = Object.fromEntries(regionsData.regions.map((r) => [r.id, r]));
   const factionById = Object.fromEntries(factionsData.factions.map((f) => [f.id, f]));
 
-  function show(regionId: RegionId, state: GameState) {
+  function show(regionId: RegionId, state: GameState, marchFrom: RegionId | null) {
     const staticRegion = byId[regionId];
     const dynamic = state.regions[regionId];
     if (!staticRegion || !dynamic) return;
@@ -32,6 +42,14 @@ export function createBottomSheet(container: HTMLElement): BottomSheetHandle {
       .map((a) => `${byId[a.to]?.name ?? a.to}${a.type === 'sea' ? '(해로)' : ''}`)
       .join(', ');
 
+    const isPlayerOwned = dynamic.owner === state.playerFaction;
+    const ap = state.factions[state.playerFaction]?.actionPoints ?? 0;
+    const isMarching = marchFrom === regionId;
+    const isMarchTarget =
+      marchFrom !== null &&
+      marchFrom !== regionId &&
+      byId[marchFrom]?.adjacent.some((a) => a.to === regionId);
+
     container.innerHTML = `
       <h2>${staticRegion.name}${staticRegion.modernName ? `<small> (${staticRegion.modernName})</small>` : ''}</h2>
       <dl>
@@ -41,9 +59,69 @@ export function createBottomSheet(container: HTMLElement): BottomSheetHandle {
         <dt>성벽</dt><dd>${dynamic.defense}</dd>
         <dt>인구</dt><dd>${dynamic.pop}등급</dd>
         <dt>생산</dt><dd>${dynamic.food}등급</dd>
+        ${dynamic.project ? `<dt>공사</dt><dd>${dynamic.project.kind === 'domestic' ? '내정' : '축성'} (${dynamic.project.remainingTurns}턴 남음)</dd>` : ''}
       </dl>
       <div class="adjacent-list">인접: ${adjacentNames || '없음'}</div>
+      ${
+        isPlayerOwned || marchFrom
+          ? `<div class="action-points">행동력 ${ap} / ${balanceData.turn.actionsPerFaction}</div><div class="action-panel"></div>`
+          : ''
+      }
     `;
+
+    const panel = container.querySelector('.action-panel');
+    if (!panel) return;
+
+    if (marchFrom) {
+      if (isMarchTarget) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = `이곳으로 출진`;
+        btn.addEventListener('click', () => handlers.onMarchTarget(regionId));
+        panel.appendChild(btn);
+      }
+      const cancelBtn = document.createElement('button');
+      cancelBtn.type = 'button';
+      cancelBtn.textContent = '출진 취소';
+      cancelBtn.addEventListener('click', () => handlers.onMarchCancel());
+      panel.appendChild(cancelBtn);
+      if (isMarching) {
+        const note = document.createElement('div');
+        note.textContent = '인접 지역을 눌러 목표를 고른다.';
+        note.style.fontSize = '12px';
+        note.style.opacity = '0.7';
+        panel.appendChild(note);
+      }
+      return;
+    }
+
+    if (!isPlayerOwned) return;
+
+    const conscriptBtn = document.createElement('button');
+    conscriptBtn.type = 'button';
+    conscriptBtn.textContent = '징병';
+    conscriptBtn.disabled = ap <= 0;
+    conscriptBtn.addEventListener('click', () => handlers.onConscript(regionId));
+
+    const domesticBtn = document.createElement('button');
+    domesticBtn.type = 'button';
+    domesticBtn.textContent = '내정';
+    domesticBtn.disabled = ap <= 0 || !!dynamic.project;
+    domesticBtn.addEventListener('click', () => handlers.onDomestic(regionId));
+
+    const fortifyBtn = document.createElement('button');
+    fortifyBtn.type = 'button';
+    fortifyBtn.textContent = '축성';
+    fortifyBtn.disabled = ap <= 0 || !!dynamic.project;
+    fortifyBtn.addEventListener('click', () => handlers.onFortify(regionId));
+
+    const marchBtn = document.createElement('button');
+    marchBtn.type = 'button';
+    marchBtn.textContent = '출진';
+    marchBtn.disabled = ap <= 0;
+    marchBtn.addEventListener('click', () => handlers.onMarchBegin(regionId));
+
+    panel.append(conscriptBtn, domesticBtn, fortifyBtn, marchBtn);
   }
 
   function clear() {

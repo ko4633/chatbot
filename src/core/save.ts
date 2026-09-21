@@ -5,7 +5,7 @@ import type { GameState } from './types';
  * 실제 localStorage 접근은 브라우저 계층(src/ui)에서 수행한다.
  */
 
-export const SAVE_FORMAT_VERSION = 1;
+export const SAVE_FORMAT_VERSION = 2;
 
 export interface SaveFile {
   version: number;

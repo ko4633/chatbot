@@ -169,3 +169,86 @@ body {
   margin-top: 8px;
   font-family: var(--font-chronicle);
 }
+
+.action-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.action-panel button {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  padding: 6px 12px;
+  border: 1px solid var(--color-border);
+  background: #e7dcc2;
+  color: var(--color-ink);
+  border-radius: 4px;
+}
+
+.action-panel button:disabled {
+  opacity: 0.4;
+}
+
+.action-panel button.active {
+  background: var(--color-border);
+  color: #f2e8cf;
+}
+
+.action-points {
+  margin-top: 6px;
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+/* 결과 팝업 */
+.result-popup-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+  opacity: 1;
+  transition: opacity 0.15s ease;
+}
+
+.result-popup-backdrop.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.result-popup-card {
+  background: var(--color-land);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 20px;
+  max-width: 320px;
+  width: 85vw;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.result-popup-card h2 {
+  margin: 0 0 10px 0;
+  font-family: var(--font-chronicle);
+  font-size: 18px;
+}
+
+.result-popup-body {
+  font-family: var(--font-chronicle);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.result-popup-card button {
+  margin-top: 14px;
+  font-family: var(--font-ui);
+  padding: 6px 14px;
+  border: 1px solid var(--color-border);
+  background: #e7dcc2;
+  color: var(--color-ink);
+  border-radius: 4px;
+}

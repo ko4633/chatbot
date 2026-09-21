@@ -79,8 +79,15 @@ export interface HeroesFile {
   heroes: HeroData[];
 }
 
-export type BalanceFile = Record<string, unknown>;
 export type EventsFile = Record<string, unknown>;
+
+export type ProjectKind = 'domestic' | 'fortify';
+
+export interface RegionProject {
+  kind: ProjectKind;
+  faction: FactionId;
+  remainingTurns: number;
+}
 
 /** Mutable per-region game state (a copy derived from RegionData). */
 export interface RegionState {
@@ -90,6 +97,7 @@ export interface RegionState {
   defense: number;
   pop: number;
   food: number;
+  project: RegionProject | null;
 }
 
 /** Mutable per-faction game state (a copy derived from FactionData). */
@@ -99,12 +107,33 @@ export interface FactionState {
   food: number;
   cohesion: number;
   grudge: number;
+  morale: number;
+  actionPoints: number;
 }
 
 export interface RelationState {
   a: FactionId;
   b: FactionId;
   value: number;
+}
+
+/** 영웅의 가변 상태: 위치와 생존 여부. 능력치·생몰연도 등 불변값은 heroesData에서 읽는다. */
+export interface HeroState {
+  id: HeroId;
+  faction: FactionId;
+  location: RegionId | null;
+  alive: boolean;
+}
+
+export interface SiegeState {
+  id: string;
+  region: RegionId;
+  attacker: FactionId;
+  defender: FactionId;
+  attackerTroops: number;
+  attackerHeroes: HeroId[];
+  foodTurnsRemaining: number;
+  startedTurn: number;
 }
 
 export interface GameState {
@@ -114,6 +143,8 @@ export interface GameState {
   regions: Record<RegionId, RegionState>;
   factions: Record<FactionId, FactionState>;
   relations: RelationState[];
+  heroes: Record<HeroId, HeroState>;
+  sieges: SiegeState[];
   playerFaction: FactionId;
   rngSeed: number;
   rngCursor: number;
