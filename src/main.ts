@@ -1,11 +1,14 @@
 import './style.css';
 import { conscriptAction, domesticAction, fortifyAction, marchAction } from './core/actions';
 import { factionsData, regionsData } from './core/data';
+import { resolveEventChoice } from './core/events';
 import { advanceTurn, createInitialState } from './core/state';
 import type { ActionResult } from './core/actions';
 import type { GameState, RegionId } from './core/types';
 import { createMapView } from './map/svgMap';
 import { createBottomSheet } from './ui/bottomSheet';
+import { createChroniclePanel } from './ui/chroniclePanel';
+import { createEventPopup } from './ui/eventPopup';
 import { createResultPopup } from './ui/resultPopup';
 import { createTopbar } from './ui/topbar';
 import { loadFromLocalStorage, saveToLocalStorage } from './ui/storage';
@@ -21,8 +24,10 @@ const mapEl = document.createElement('div');
 mapEl.className = 'map-container';
 const bottomSheetEl = document.createElement('div');
 const popupEl = document.createElement('div');
+const eventPopupEl = document.createElement('div');
+const chroniclePanelEl = document.createElement('div');
 
-app.append(topbarEl, mapEl, bottomSheetEl, popupEl);
+app.append(topbarEl, mapEl, bottomSheetEl, popupEl, eventPopupEl, chroniclePanelEl);
 
 let state: GameState = loadFromLocalStorage() ?? createInitialState(DEFAULT_PLAYER_FACTION, DEFAULT_RNG_SEED);
 let selectedRegion: RegionId | null = null;
@@ -32,6 +37,8 @@ const factionColors = Object.fromEntries(factionsData.factions.map((f) => [f.id,
 const regionNameById = Object.fromEntries(regionsData.regions.map((r) => [r.id, r.name]));
 
 const resultPopup = createResultPopup(popupEl);
+const eventPopup = createEventPopup(eventPopupEl);
+const chroniclePanel = createChroniclePanel(chroniclePanelEl);
 
 function refresh() {
   topbar.update(state);
@@ -41,6 +48,16 @@ function refresh() {
     bottomSheet.clear();
   }
   mapView.update(state, selectedRegion);
+  chroniclePanel.update(state);
+
+  if (state.pendingChoice) {
+    eventPopup.show(state.pendingChoice, (choiceId) => {
+      state = resolveEventChoice(state, choiceId);
+      persistAndRefresh();
+    });
+  } else {
+    eventPopup.hide();
+  }
 }
 
 function persistAndRefresh() {
@@ -118,10 +135,16 @@ const mapView = createMapView(mapEl, factionColors, (regionId) => {
   refresh();
 });
 
-const topbar = createTopbar(topbarEl, () => {
-  state = advanceTurn(state);
-  persistAndRefresh();
-});
+const topbar = createTopbar(
+  topbarEl,
+  () => {
+    state = advanceTurn(state);
+    persistAndRefresh();
+  },
+  () => {
+    chroniclePanel.toggle();
+  }
+);
 
 refresh();
 saveToLocalStorage(state);

@@ -5,7 +5,9 @@ import {
   resolveBattle,
   rollHeroDeath
 } from './combat';
-import { heroesData, regionsData } from './data';
+import { regionsData } from './data';
+import { checkCapitalCollapse } from './factionRules';
+import { heroLeadership, NO_COMMANDER_LEADERSHIP } from './heroUtil';
 import { assaultAttackerCasualties, canAssault, siegeInitialFoodTurns } from './siege';
 import type { AdjacencyType, FactionId, GameState, HeroId, RegionId, SiegeState } from './types';
 
@@ -15,8 +17,6 @@ import type { AdjacencyType, FactionId, GameState, HeroId, RegionId, SiegeState 
  */
 
 export type ActionResult = { ok: true; state: GameState } | { ok: false; reason: string };
-
-const NO_COMMANDER_LEADERSHIP = 50; // 지휘 영웅이 없는 부대의 기본 통솔(설계 미기재 구간의 중립값).
 
 function consumeActionPoint(state: GameState, faction: FactionId): GameState {
   const fs = state.factions[faction];
@@ -116,10 +116,6 @@ export interface MarchParams {
   heroIds: HeroId[];
 }
 
-function heroLeadership(heroId: HeroId): number {
-  return heroesData.heroes.find((h) => h.id === heroId)?.leadership ?? NO_COMMANDER_LEADERSHIP;
-}
-
 export function marchAction(state: GameState, params: MarchParams): ActionResult {
   const { faction, fromRegion, toRegion, troops, heroIds } = params;
   const apError = requireActionPoint(state, faction);
@@ -137,7 +133,7 @@ export function marchAction(state: GameState, params: MarchParams): ActionResult
   }
   for (const heroId of heroIds) {
     const hero = state.heroes[heroId];
-    if (!hero || !hero.alive || hero.faction !== faction || hero.location !== fromRegion) {
+    if (!hero || hero.status !== 'active' || hero.faction !== faction || hero.location !== fromRegion) {
       return { ok: false, reason: '종군할 수 없는 영웅이다.' };
     }
   }
@@ -209,7 +205,9 @@ function resolveAttack(state: GameState, ctx: AttackContext): ActionResult {
   const commanderId = heroIds[0] ?? null;
   const attackerLeadership = commanderId ? heroLeadership(commanderId) : NO_COMMANDER_LEADERSHIP;
   const defenderHeroId =
-    Object.values(state.heroes).find((h) => h.faction === defenderFaction && h.alive && h.location === toRegion)
+    Object.values(state.heroes).find(
+      (h) => h.faction === defenderFaction && h.status === 'active' && h.location === toRegion
+    )
       ?.id ?? null;
   const defenderLeadership = defenderHeroId ? heroLeadership(defenderHeroId) : NO_COMMANDER_LEADERSHIP;
 
@@ -285,7 +283,7 @@ function resolveAttack(state: GameState, ctx: AttackContext): ActionResult {
     ids.forEach((id, idx) => {
       const roll = rollHeroDeath(next.rngSeed, heroDeathCursor, idx === 0, balance);
       heroDeathCursor = roll.nextRngCursor;
-      if (roll.died) heroesAfter[id] = { ...heroesAfter[id], alive: false, location: null };
+      if (roll.died) heroesAfter[id] = { ...heroesAfter[id], status: 'dead', location: null };
     });
   }
   applyDeathRolls(heroIds, isAttackerLoser);
@@ -305,6 +303,11 @@ function resolveAttack(state: GameState, ctx: AttackContext): ActionResult {
     };
     factions[faction] = { ...factions[faction], cohesion: Math.min(100, factions[faction].cohesion + balanceData.cohesion.onVictory) };
     chronicle = [...chronicle, { year: state.year, season: state.season, text: `${targetName}을(를) 강습하여 함락시키다.` }];
+    if (targetStatic.capital) {
+      const collapsed = checkCapitalCollapse({ ...next, regions, factions }, defenderFaction, faction);
+      regions = collapsed.regions;
+      Object.assign(factions, collapsed.factions);
+    }
   } else {
     const survivors = Math.max(0, Math.round(target.garrison * (1 - battle.winnerLossRatio)));
     regions = { ...regions, [toRegion]: { ...target, garrison: survivors } };
@@ -316,6 +319,22 @@ function resolveAttack(state: GameState, ctx: AttackContext): ActionResult {
     chronicle = [...chronicle, { year: state.year, season: state.season, text: `${targetName}에 대한 강습이 실패로 돌아가다.` }];
   }
 
-  next = { ...next, regions, factions, chronicle, heroes: heroesAfter, rngCursor: heroDeathCursor };
+  next = {
+    ...next,
+    regions,
+    factions,
+    chronicle,
+    heroes: heroesAfter,
+    rngCursor: heroDeathCursor,
+    lastBattle: {
+      region: toRegion,
+      attackerFaction: faction,
+      defenderFaction,
+      winner: battle.winner,
+      attackerHeroIds: heroIds,
+      defenderHeroIds: defenderHeroId ? [defenderHeroId] : [],
+      turn: state.turnNumber
+    }
+  };
   return { ok: true, state: next };
 }

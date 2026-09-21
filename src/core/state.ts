@@ -1,6 +1,8 @@
 import { balanceData } from './balance';
 import { factionsData, heroesData, regionsData } from './data';
 import { applyAutumnHarvest, applyGoldIncome, applyUpkeep } from './economy';
+import { processEvents } from './events';
+import { checkCapitalCollapse } from './factionRules';
 import { tickSiege } from './siege';
 import {
   type FactionId,
@@ -45,7 +47,8 @@ function buildInitialFactions(): Record<string, FactionState> {
       cohesion: f.cohesion,
       grudge: f.grudge ?? 0,
       morale: 1,
-      actionPoints: balanceData.turn.actionsPerFaction
+      actionPoints: balanceData.turn.actionsPerFaction,
+      destroyed: false
     };
   }
   return result;
@@ -55,19 +58,19 @@ function buildInitialHeroes(startYear: number): Record<string, HeroState> {
   const result: Record<string, HeroState> = {};
   const capitalByFaction = Object.fromEntries(factionsData.factions.map((f) => [f.id, f.capital]));
   for (const h of heroesData.heroes) {
-    const alive = h.appearYear <= startYear && startYear <= h.exitYear;
+    const active = h.appearYear <= startYear && startYear <= h.exitYear;
     result[h.id] = {
       id: h.id,
       faction: h.faction,
-      location: alive ? capitalByFaction[h.faction] ?? null : null,
-      alive
+      location: active ? capitalByFaction[h.faction] ?? null : null,
+      status: active ? 'active' : 'unborn'
     };
   }
   return result;
 }
 
 export function createInitialState(playerFaction: FactionId, rngSeed: number): GameState {
-  return {
+  const initial: GameState = {
     turnNumber: 0,
     year: regionsData.startYear,
     season: regionsData.startSeason,
@@ -86,8 +89,16 @@ export function createInitialState(playerFaction: FactionId, rngSeed: number): G
         season: regionsData.startSeason,
         text: `${regionsData.startYear}년 ${SEASON_LABEL[regionsData.startSeason]}, 삼한이 다시 어지러워지다.`
       }
-    ]
+    ],
+    jungwonPhase: 'namboekjo',
+    firedEvents: {},
+    eventCursorIndex: 0,
+    pendingChoice: null,
+    lastBattle: null,
+    invasionOutcomes: {}
   };
+  // 551년 봄 시작 이벤트(한강 탈환 등)는 첫 advanceTurn을 기다리지 않고 시작 시점에 판정한다.
+  return processEvents(initial);
 }
 
 function nextSeason(season: Season): { season: Season; yearDelta: number } {
@@ -171,6 +182,9 @@ function processSieges(state: GameState): GameState {
           ...defender,
           cohesion: Math.max(0, defender.cohesion + balanceData.siege.capitalFallCohesionPenalty)
         };
+        const collapsed = checkCapitalCollapse({ ...state, regions, factions }, siege.defender, siege.attacker);
+        Object.assign(regions, collapsed.regions);
+        Object.assign(factions, collapsed.factions);
       }
     } else {
       regions[siege.region] = { ...region, garrison: tick.defenderGarrisonAfter };
@@ -182,8 +196,34 @@ function processSieges(state: GameState): GameState {
 }
 
 /**
- * 턴 진행: 계절 처리 → (행동력 초기화) → 내정/축성 진행 → 포위 진행 → 경제(금·유지비·가을수확).
- * 이벤트 판정·플레이어/AI 행동·이동/전투는 각 행동 함수(actions.ts)와 이후 단계에서 수행한다.
+ * 영웅 등장·퇴장: appearYear가 되면 활동을 시작하고(수도에 위치), exitYear를 넘기면 자연 퇴장한다.
+ * 이벤트로 이미 사망(dead) 처리된 영웅은 되살아나지 않는다.
+ */
+function processHeroLifecycle(state: GameState): GameState {
+  const heroes = { ...state.heroes };
+  const chronicle = [...state.chronicle];
+  const capitalByFaction = Object.fromEntries(factionsData.factions.map((f) => [f.id, f.capital]));
+  let changed = false;
+
+  for (const h of heroesData.heroes) {
+    const hs = heroes[h.id];
+    if (hs.status === 'unborn' && state.year >= h.appearYear && state.year <= h.exitYear) {
+      heroes[h.id] = { ...hs, status: 'active', location: capitalByFaction[h.faction] ?? null };
+      chronicle.push({ year: state.year, season: state.season, text: `${h.name}이(가) 활동을 시작하다.` });
+      changed = true;
+    } else if (hs.status === 'active' && state.year > h.exitYear) {
+      heroes[h.id] = { ...hs, status: 'dead', location: null };
+      chronicle.push({ year: state.year, season: state.season, text: `${h.name}이(가) 물러나다.` });
+      changed = true;
+    }
+  }
+
+  return changed ? { ...state, heroes, chronicle } : state;
+}
+
+/**
+ * 턴 진행: 계절 처리 → 이벤트 판정 → (행동력 초기화, 플레이어/AI 행동은 actions.ts를 통해 턴 중 수행) →
+ * 내정/축성 진행 → 포위 진행 → 경제(금·유지비·가을수확) → 영웅 등장·퇴장.
  */
 export function advanceTurn(state: GameState): GameState {
   const { season, yearDelta } = nextSeason(state.season);
@@ -194,16 +234,19 @@ export function advanceTurn(state: GameState): GameState {
     turnNumber: state.turnNumber + 1,
     year,
     season,
+    eventCursorIndex: 0,
     chronicle: [...state.chronicle, { year, season, text: `${year}년 ${SEASON_LABEL[season]}이 되다.` }]
   };
 
   next = resetActionPoints(next);
+  next = processEvents(next);
   next = processProjects(next);
   next = processSieges(next);
   next = applyGoldIncome(next, balanceData.economy);
   const upkeep = applyUpkeep(next, balanceData.economy, balanceData.combat.moraleMin);
   next = upkeep.state;
   next = applyAutumnHarvest(next, balanceData.economy);
+  next = processHeroLifecycle(next);
 
   return next;
 }

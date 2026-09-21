@@ -109,6 +109,7 @@ export interface FactionState {
   grudge: number;
   morale: number;
   actionPoints: number;
+  destroyed: boolean;
 }
 
 export interface RelationState {
@@ -117,12 +118,15 @@ export interface RelationState {
   value: number;
 }
 
-/** 영웅의 가변 상태: 위치와 생존 여부. 능력치·생몰연도 등 불변값은 heroesData에서 읽는다. */
+/** 영웅의 생애 단계: 아직 등장 전 / 활동 중 / 퇴장(사망 등). */
+export type HeroStatus = 'unborn' | 'active' | 'dead';
+
+/** 영웅의 가변 상태: 위치와 생애 단계. 능력치·생몰연도 등 불변값은 heroesData에서 읽는다. */
 export interface HeroState {
   id: HeroId;
   faction: FactionId;
   location: RegionId | null;
-  alive: boolean;
+  status: HeroStatus;
 }
 
 export interface SiegeState {
@@ -134,6 +138,36 @@ export interface SiegeState {
   attackerHeroes: HeroId[];
   foodTurnsRemaining: number;
   startedTurn: number;
+}
+
+export type JungwonPhase = 'namboekjo' | 'sui' | 'tang';
+
+export interface LastBattleInfo {
+  region: RegionId | null;
+  attackerFaction: FactionId;
+  defenderFaction: FactionId;
+  winner: 'attacker' | 'defender';
+  attackerHeroIds: HeroId[];
+  defenderHeroIds: HeroId[];
+  turn: number;
+}
+
+export interface InvasionOutcome {
+  result: string;
+  at: RegionId | null;
+  supplyRatio: number;
+}
+
+export interface PendingChoiceOption {
+  id: string;
+  label: string;
+}
+
+export interface PendingChoice {
+  eventId: string;
+  title: string;
+  text: string;
+  options: PendingChoiceOption[];
 }
 
 export interface GameState {
@@ -150,6 +184,12 @@ export interface GameState {
   rngCursor: number;
   flags: Record<string, boolean>;
   chronicle: ChronicleEntry[];
+  jungwonPhase: JungwonPhase;
+  firedEvents: Record<string, boolean>;
+  eventCursorIndex: number;
+  pendingChoice: PendingChoice | null;
+  lastBattle: LastBattleInfo | null;
+  invasionOutcomes: Record<FactionId, InvasionOutcome>;
 }
 
 export interface ChronicleEntry {
