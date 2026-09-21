@@ -1,0 +1,236 @@
+{
+  "startYear": 551,
+  "startSeason": "spring",
+  "regions": [
+    { "id": "sinseong", "name": "신성", "modernName": "푸순", "owner": "goguryeo", "terrain": "castle", "capital": false, "garrison": 4000, "defense": 4, "pop": 3, "food": 3, "x": 210, "y": 90,
+      "adjacent": [
+        { "to": "yoseo", "type": "land" },
+        { "to": "yodongseong", "type": "land" },
+        { "to": "buyeoseong", "type": "land" },
+        { "to": "gungnaeseong", "type": "land" }
+      ] },
+    { "id": "yodongseong", "name": "요동성", "modernName": "랴오양", "owner": "goguryeo", "terrain": "castle", "capital": false, "garrison": 8000, "defense": 5, "pop": 5, "food": 4, "x": 280, "y": 170,
+      "adjacent": [
+        { "to": "yoseo", "type": "land" },
+        { "to": "sinseong", "type": "land" },
+        { "to": "ansiseong", "type": "land" },
+        { "to": "gungnaeseong", "type": "land" }
+      ] },
+    { "id": "ansiseong", "name": "안시성", "modernName": "하이청", "owner": "goguryeo", "terrain": "castle", "capital": false, "garrison": 5000, "defense": 5, "pop": 3, "food": 2, "x": 300, "y": 250,
+      "adjacent": [
+        { "to": "yodongseong", "type": "land" },
+        { "to": "bisaseong", "type": "land" },
+        { "to": "pyeongyang", "type": "land" }
+      ] },
+    { "id": "bisaseong", "name": "비사성", "modernName": "다롄", "owner": "goguryeo", "terrain": "port", "capital": false, "garrison": 3000, "defense": 3, "pop": 2, "food": 2, "x": 260, "y": 330,
+      "adjacent": [
+        { "to": "yoseo", "type": "land" },
+        { "to": "ansiseong", "type": "land" },
+        { "to": "sandonghaero", "type": "sea" }
+      ] },
+    { "id": "buyeoseong", "name": "부여성", "modernName": "", "owner": "goguryeo", "terrain": "castle", "capital": false, "garrison": 3000, "defense": 3, "pop": 2, "food": 2, "x": 380, "y": 100,
+      "adjacent": [
+        { "to": "sinseong", "type": "land" },
+        { "to": "gungnaeseong", "type": "land" },
+        { "to": "chaekseong", "type": "land" }
+      ] },
+    { "id": "gungnaeseong", "name": "국내성", "modernName": "지안", "owner": "goguryeo", "terrain": "castle", "capital": false, "garrison": 5000, "defense": 4, "pop": 5, "food": 4, "x": 390, "y": 190,
+      "adjacent": [
+        { "to": "sinseong", "type": "land" },
+        { "to": "yodongseong", "type": "land" },
+        { "to": "buyeoseong", "type": "land" },
+        { "to": "chaekseong", "type": "land" },
+        { "to": "pyeongyang", "type": "land" }
+      ] },
+    { "id": "chaekseong", "name": "책성", "modernName": "훈춘", "owner": "goguryeo", "terrain": "castle", "capital": false, "garrison": 3000, "defense": 3, "pop": 2, "food": 2, "x": 480, "y": 140,
+      "adjacent": [
+        { "to": "buyeoseong", "type": "land" },
+        { "to": "gungnaeseong", "type": "land" },
+        { "to": "biyeolhol", "type": "land" }
+      ] },
+    { "id": "pyeongyang", "name": "평양", "modernName": "", "owner": "goguryeo", "terrain": "capital", "capital": true, "garrison": 15000, "defense": 5, "pop": 6, "food": 6, "x": 380, "y": 340,
+      "adjacent": [
+        { "to": "gungnaeseong", "type": "land" },
+        { "to": "ansiseong", "type": "land" },
+        { "to": "sugokseong", "type": "land" },
+        { "to": "biyeolhol", "type": "land" },
+        { "to": "sandonghaero", "type": "sea" }
+      ] },
+    { "id": "biyeolhol", "name": "비열홀", "modernName": "안변", "owner": "goguryeo", "terrain": "castle", "capital": false, "garrison": 2500, "defense": 2, "pop": 1, "food": 2, "x": 460, "y": 320,
+      "adjacent": [
+        { "to": "chaekseong", "type": "land" },
+        { "to": "pyeongyang", "type": "land" },
+        { "to": "sugokseong", "type": "land" },
+        { "to": "haseulla", "type": "land" }
+      ] },
+    { "id": "sugokseong", "name": "수곡성", "modernName": "신계", "owner": "goguryeo", "terrain": "castle", "capital": false, "garrison": 3000, "defense": 3, "pop": 2, "food": 2, "x": 420, "y": 410,
+      "adjacent": [
+        { "to": "pyeongyang", "type": "land" },
+        { "to": "biyeolhol", "type": "land" },
+        { "to": "hanseong", "type": "land" },
+        { "to": "hangangsangnyu", "type": "land" }
+      ] },
+
+    { "id": "hanseong", "name": "한성", "modernName": "서울", "owner": "baekje", "terrain": "castle", "capital": false, "garrison": 6000, "defense": 3, "pop": 5, "food": 4, "x": 430, "y": 480,
+      "adjacent": [
+        { "to": "sugokseong", "type": "land" },
+        { "to": "hangangsangnyu", "type": "land" },
+        { "to": "imjonseong", "type": "land" },
+        { "to": "ungjin", "type": "land" },
+        { "to": "gugwon", "type": "land" }
+      ] },
+    { "id": "imjonseong", "name": "임존성", "modernName": "예산", "owner": "baekje", "terrain": "castle", "capital": false, "garrison": 4000, "defense": 4, "pop": 3, "food": 3, "x": 380, "y": 550,
+      "adjacent": [
+        { "to": "hanseong", "type": "land" },
+        { "to": "ungjin", "type": "land" },
+        { "to": "baekgang", "type": "land" }
+      ] },
+    { "id": "ungjin", "name": "웅진", "modernName": "공주", "owner": "baekje", "terrain": "castle", "capital": false, "garrison": 5000, "defense": 4, "pop": 5, "food": 4, "x": 410, "y": 600,
+      "adjacent": [
+        { "to": "hanseong", "type": "land" },
+        { "to": "imjonseong", "type": "land" },
+        { "to": "sabi", "type": "land" },
+        { "to": "tanhyeon", "type": "land" }
+      ] },
+    { "id": "sabi", "name": "사비", "modernName": "부여", "owner": "baekje", "terrain": "capital", "capital": true, "garrison": 12000, "defense": 4, "pop": 6, "food": 6, "x": 390, "y": 670,
+      "adjacent": [
+        { "to": "ungjin", "type": "land" },
+        { "to": "baekgang", "type": "land" },
+        { "to": "tanhyeon", "type": "land" },
+        { "to": "geumma", "type": "land" }
+      ] },
+    { "id": "baekgang", "name": "백강", "modernName": "서천", "owner": "baekje", "terrain": "port", "capital": false, "garrison": 3000, "defense": 2, "pop": 2, "food": 3, "x": 320, "y": 660,
+      "adjacent": [
+        { "to": "imjonseong", "type": "land" },
+        { "to": "sabi", "type": "land" },
+        { "to": "geumma", "type": "land" },
+        { "to": "sandonghaero", "type": "sea" },
+        { "to": "wa", "type": "sea" }
+      ] },
+    { "id": "tanhyeon", "name": "탄현", "modernName": "", "owner": "baekje", "terrain": "pass", "capital": false, "garrison": 2500, "defense": 4, "pop": 1, "food": 1, "x": 450, "y": 670,
+      "adjacent": [
+        { "to": "ungjin", "type": "land" },
+        { "to": "sabi", "type": "land" },
+        { "to": "gwansanseong", "type": "land" }
+      ] },
+    { "id": "geumma", "name": "금마", "modernName": "익산", "owner": "baekje", "terrain": "castle", "capital": false, "garrison": 4000, "defense": 2, "pop": 3, "food": 2, "x": 380, "y": 730,
+      "adjacent": [
+        { "to": "sabi", "type": "land" },
+        { "to": "baekgang", "type": "land" },
+        { "to": "mujin", "type": "land" },
+        { "to": "dara", "type": "land" }
+      ] },
+    { "id": "mujin", "name": "무진", "modernName": "광주", "owner": "baekje", "terrain": "castle", "capital": false, "garrison": 3500, "defense": 2, "pop": 3, "food": 2, "x": 370, "y": 800,
+      "adjacent": [
+        { "to": "geumma", "type": "land" },
+        { "to": "dara", "type": "land" },
+        { "to": "wa", "type": "sea" }
+      ] },
+
+    { "id": "hangangsangnyu", "name": "한강상류", "modernName": "양평·원주", "owner": "silla", "terrain": "castle", "capital": false, "garrison": 4000, "defense": 2, "pop": 2, "food": 3, "x": 510, "y": 460,
+      "adjacent": [
+        { "to": "sugokseong", "type": "land" },
+        { "to": "hanseong", "type": "land" },
+        { "to": "gugwon", "type": "land" },
+        { "to": "haseulla", "type": "land" }
+      ] },
+    { "id": "haseulla", "name": "하슬라", "modernName": "강릉", "owner": "silla", "terrain": "castle", "capital": false, "garrison": 2500, "defense": 2, "pop": 1, "food": 2, "x": 560, "y": 420,
+      "adjacent": [
+        { "to": "biyeolhol", "type": "land" },
+        { "to": "hangangsangnyu", "type": "land" },
+        { "to": "siljik", "type": "land" }
+      ] },
+    { "id": "siljik", "name": "실직", "modernName": "삼척", "owner": "silla", "terrain": "castle", "capital": false, "garrison": 2000, "defense": 2, "pop": 1, "food": 1, "x": 580, "y": 520,
+      "adjacent": [
+        { "to": "haseulla", "type": "land" },
+        { "to": "seorabeol", "type": "land" }
+      ] },
+    { "id": "gugwon", "name": "국원", "modernName": "충주", "owner": "silla", "terrain": "castle", "capital": false, "garrison": 4000, "defense": 3, "pop": 3, "food": 3, "x": 500, "y": 550,
+      "adjacent": [
+        { "to": "hangangsangnyu", "type": "land" },
+        { "to": "hanseong", "type": "land" },
+        { "to": "samnyeonsanseong", "type": "land" },
+        { "to": "sabeol", "type": "land" }
+      ] },
+    { "id": "gwansanseong", "name": "관산성", "modernName": "옥천", "owner": "silla", "terrain": "castle", "capital": false, "garrison": 4000, "defense": 4, "pop": 3, "food": 2, "x": 470, "y": 700,
+      "adjacent": [
+        { "to": "tanhyeon", "type": "land" },
+        { "to": "samnyeonsanseong", "type": "land" },
+        { "to": "sabeol", "type": "land" }
+      ] },
+    { "id": "samnyeonsanseong", "name": "삼년산성", "modernName": "보은", "owner": "silla", "terrain": "castle", "capital": false, "garrison": 4000, "defense": 5, "pop": 2, "food": 2, "x": 500, "y": 640,
+      "adjacent": [
+        { "to": "gwansanseong", "type": "land" },
+        { "to": "gugwon", "type": "land" },
+        { "to": "sabeol", "type": "land" }
+      ] },
+    { "id": "sabeol", "name": "사벌", "modernName": "상주", "owner": "silla", "terrain": "castle", "capital": false, "garrison": 3500, "defense": 2, "pop": 3, "food": 3, "x": 530, "y": 690,
+      "adjacent": [
+        { "to": "gugwon", "type": "land" },
+        { "to": "samnyeonsanseong", "type": "land" },
+        { "to": "gwansanseong", "type": "land" },
+        { "to": "daegaya", "type": "land" },
+        { "to": "amnyang", "type": "land" }
+      ] },
+    { "id": "amnyang", "name": "압량", "modernName": "경산", "owner": "silla", "terrain": "castle", "capital": false, "garrison": 3500, "defense": 2, "pop": 3, "food": 2, "x": 570, "y": 740,
+      "adjacent": [
+        { "to": "sabeol", "type": "land" },
+        { "to": "daegaya", "type": "land" },
+        { "to": "seorabeol", "type": "land" },
+        { "to": "geumgwan", "type": "land" }
+      ] },
+    { "id": "seorabeol", "name": "서라벌", "modernName": "경주", "owner": "silla", "terrain": "capital", "capital": true, "garrison": 12000, "defense": 4, "pop": 6, "food": 6, "x": 610, "y": 780,
+      "adjacent": [
+        { "to": "amnyang", "type": "land" },
+        { "to": "siljik", "type": "land" },
+        { "to": "geumgwan", "type": "land" }
+      ] },
+    { "id": "geumgwan", "name": "금관", "modernName": "김해", "owner": "silla", "terrain": "port", "capital": false, "garrison": 3500, "defense": 2, "pop": 3, "food": 3, "x": 560, "y": 840,
+      "adjacent": [
+        { "to": "amnyang", "type": "land" },
+        { "to": "seorabeol", "type": "land" },
+        { "to": "ara", "type": "land" },
+        { "to": "wa", "type": "sea" }
+      ] },
+
+    { "id": "daegaya", "name": "대가야", "modernName": "고령", "owner": "gaya", "terrain": "capital", "capital": true, "garrison": 5000, "defense": 3, "pop": 4, "food": 4, "x": 490, "y": 760,
+      "adjacent": [
+        { "to": "sabeol", "type": "land" },
+        { "to": "dara", "type": "land" },
+        { "to": "amnyang", "type": "land" },
+        { "to": "ara", "type": "land" }
+      ] },
+    { "id": "dara", "name": "다라", "modernName": "합천", "owner": "gaya", "terrain": "castle", "capital": false, "garrison": 3000, "defense": 3, "pop": 2, "food": 2, "x": 450, "y": 750,
+      "adjacent": [
+        { "to": "daegaya", "type": "land" },
+        { "to": "geumma", "type": "land" },
+        { "to": "mujin", "type": "land" },
+        { "to": "ara", "type": "land" }
+      ] },
+    { "id": "ara", "name": "아라", "modernName": "함안", "owner": "gaya", "terrain": "castle", "capital": false, "garrison": 3000, "defense": 2, "pop": 2, "food": 2, "x": 480, "y": 810,
+      "adjacent": [
+        { "to": "daegaya", "type": "land" },
+        { "to": "dara", "type": "land" },
+        { "to": "geumgwan", "type": "land" }
+      ] },
+
+    { "id": "yoseo", "name": "요서", "modernName": "", "owner": "jungwon", "terrain": "external", "capital": false, "garrison": 0, "defense": 0, "pop": 0, "food": 0, "x": 100, "y": 130,
+      "adjacent": [
+        { "to": "sinseong", "type": "land" },
+        { "to": "yodongseong", "type": "land" },
+        { "to": "bisaseong", "type": "land" }
+      ] },
+    { "id": "sandonghaero", "name": "산동해로", "modernName": "", "owner": "jungwon", "terrain": "external", "capital": false, "garrison": 0, "defense": 0, "pop": 0, "food": 0, "x": 190, "y": 470,
+      "adjacent": [
+        { "to": "bisaseong", "type": "sea" },
+        { "to": "pyeongyang", "type": "sea" },
+        { "to": "baekgang", "type": "sea" }
+      ] },
+    { "id": "wa", "name": "왜", "modernName": "", "owner": "wa", "terrain": "external", "capital": false, "garrison": 0, "defense": 0, "pop": 0, "food": 0, "x": 660, "y": 920,
+      "adjacent": [
+        { "to": "baekgang", "type": "sea" },
+        { "to": "mujin", "type": "sea" },
+        { "to": "geumgwan", "type": "sea" }
+      ] }
+  ]
+}

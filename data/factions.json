@@ -1,0 +1,92 @@
+{
+  "factions": [
+    {
+      "id": "goguryeo",
+      "name": "고구려",
+      "color": "#9E2B25",
+      "playable": true,
+      "capital": "pyeongyang",
+      "gold": 800,
+      "food": 1200,
+      "cohesion": 55,
+      "traits": ["twoFronts"],
+      "notes": "양면 전선: 서쪽(요동) 병력이 전체의 40% 미만이면 중원 침공 확률 상승."
+    },
+    {
+      "id": "baekje",
+      "name": "백제",
+      "color": "#2C4F7C",
+      "playable": true,
+      "capital": "sabi",
+      "gold": 900,
+      "food": 1100,
+      "cohesion": 70,
+      "grudge": 0,
+      "traits": ["grudge"],
+      "notes": "복수심(grudge 0~100): 신라에 땅·왕을 잃으면 상승. 60 이상이면 대신라 공격 사기 +15%, 대신라 화친 불가, 중원 관계 매 턴 -2."
+    },
+    {
+      "id": "silla",
+      "name": "신라",
+      "color": "#B8912A",
+      "playable": true,
+      "capital": "seorabeol",
+      "gold": 600,
+      "food": 900,
+      "cohesion": 75,
+      "traits": ["hanRiverRoute"],
+      "notes": "한강 루트: 한성 또는 한강상류 보유 시 중원 외교 비용 -50%."
+    },
+    {
+      "id": "gaya",
+      "name": "가야",
+      "color": "#4F6B45",
+      "playable": false,
+      "capital": "daegaya",
+      "gold": 300,
+      "food": 500,
+      "cohesion": 40,
+      "traits": ["capitalCollapse"],
+      "notes": "수도 함락 시 전 지역 항복."
+    },
+    {
+      "id": "jungwon",
+      "name": "중원",
+      "color": "#5A5A5A",
+      "playable": false,
+      "capital": null,
+      "gold": 0,
+      "food": 0,
+      "cohesion": 0,
+      "notes": "영토 확장 AI 없음. 이벤트·외교·침공 모델로만 개입. 남북조(551~588, 침공 없음) → 수 → 당."
+    },
+    {
+      "id": "wa",
+      "name": "왜",
+      "color": "#6E4E86",
+      "playable": false,
+      "capital": null,
+      "gold": 0,
+      "food": 0,
+      "cohesion": 0,
+      "notes": "영토 확장 AI 없음. 이벤트·외교로만 개입."
+    }
+  ],
+  "initialRelations": [
+    { "a": "goguryeo", "b": "baekje", "value": -50 },
+    { "a": "goguryeo", "b": "silla", "value": -40 },
+    { "a": "baekje", "b": "silla", "value": 60 },
+    { "a": "baekje", "b": "gaya", "value": 40 },
+    { "a": "baekje", "b": "wa", "value": 70 },
+    { "a": "silla", "b": "gaya", "value": -30 },
+    { "a": "silla", "b": "wa", "value": -40 },
+    { "a": "gaya", "b": "wa", "value": 40 },
+    { "a": "goguryeo", "b": "gaya", "value": 0 },
+    { "a": "goguryeo", "b": "wa", "value": 0 },
+    { "a": "goguryeo", "b": "jungwon", "value": 0 },
+    { "a": "baekje", "b": "jungwon", "value": 0 },
+    { "a": "silla", "b": "jungwon", "value": 0 },
+    { "a": "gaya", "b": "jungwon", "value": 0 },
+    { "a": "wa", "b": "jungwon", "value": 0 }
+  ]
+}

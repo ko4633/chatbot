@@ -1,0 +1,99 @@
+{
+  "turn": {
+    "actionsPerFaction": 3,
+    "conscriptionSeasons": ["spring", "summer"],
+    "conscriptionPopMultiplier": 1000,
+    "domesticStatBonus": 1,
+    "domesticDurationTurns": 2,
+    "fortifyDefenseBonus": 1,
+    "fortifyDurationTurns": 3,
+    "maxHeroesPerCampaign": 3,
+    "winterCampaignLossRatio": 0.10
+  },
+  "economy": {
+    "autumnHarvestFoodPerFoodGrade": 300,
+    "autumnHarvestCohesionBaseline": 0.5,
+    "autumnHarvestCohesionDivisor": 200,
+    "goldPerPopGradePerTurn": 40,
+    "upkeepFoodPer1000Troops": 15,
+    "upkeepGoldPer1000Troops": 5,
+    "zeroFoodMoraleMultiplier": -0.30,
+    "zeroFoodCohesionPerTurn": -5
+  },
+  "cohesion": {
+    "min": 0,
+    "max": 100,
+    "onVictory": 3,
+    "onDefeat": -5,
+    "onCapitalFall": -30,
+    "onKingDeath": -10,
+    "onTerritoryLost": -3,
+    "revoltThreshold": 35,
+    "civilWarThreshold": 15
+  },
+  "grudge": {
+    "min": 0,
+    "max": 100,
+    "highThreshold": 60,
+    "highMoraleBonusVsSilla": 0.15,
+    "highBlocksPeaceWithSilla": true,
+    "highJungwonRelationPerTurn": -2
+  },
+  "combat": {
+    "leadershipBase": 0.5,
+    "leadershipDivisor": 100,
+    "moraleMin": 0.5,
+    "moraleMax": 1.5,
+    "rngMin": 0.85,
+    "rngMax": 1.15,
+    "largeArmyThreshold": 50000,
+    "largeArmyExponent": 0.8,
+    "castleDefenseBonusPerDefenseGrade": 0.25,
+    "passDefenseMultiplier": 1.5,
+    "riverOrSeaCrossingAttackMultiplier": 0.8,
+    "winterAttackMultiplier": 0.8,
+    "loserLossMin": 0.30,
+    "loserLossMax": 0.50,
+    "heroDeathChanceOnDefeat": 0.10,
+    "commanderDeathChanceOnDefeat": 0.20
+  },
+  "siege": {
+    "assaultPowerRatio": 4.0,
+    "assaultAttackerLossPerAttempt": 0.15,
+    "siegeDefenderAttritionPerTurn": 0.08,
+    "siegeFoodTurnsPerFoodGrade": 2,
+    "capitalFallCohesionPenalty": -30
+  },
+  "diplomacy": {
+    "min": -100,
+    "max": 100,
+    "allianceThreshold": 60,
+    "warThreshold": -30,
+    "brokenAllianceRelationPenaltyAll": -15,
+    "hanRiverRouteJungwonDiplomacyCostMultiplier": 0.5
+  },
+  "invasion": {
+    "supplyAttritionAfterSupplyTurnsPerTurn": 0.20,
+    "summerMonsoonPlagueExtraAttrition": 0.50,
+    "winterWithdrawSupplyThreshold": 0.5
+  },
+  "randomEvents": {
+    "drought": { "season": "summer", "chance": 0.08, "foodMultiplier": 0.7 },
+    "plague": { "season": "any", "chance": 0.04, "troopMultiplier": 0.8 },
+    "goodHarvest": { "season": "autumn", "chance": 0.12, "foodMultiplier": 1.3 },
+    "localRebellion": { "cohesionBelow": 35, "chance": 0.15 },
+    "talentAppears": { "season": "spring", "chance": 0.06, "statMin": 50, "statMax": 80 },
+    "waRaid": { "season": "summer", "chance": 0.05, "requiresHostileWa": true },
+    "astronomicalOmen": { "chance": 0.05, "cohesionPenalty": -5 }
+  },
+  "endingTargets": {
+    "hanseongFallRate": [0.60, 0.80],
+    "seongwangDeathRate": [0.50, 0.70],
+    "salsuVictoryRate": [0.70, 1.0],
+    "ansiseongDefenseRate": [0.60, 1.0],
+    "baekjeFallGivenNadangAllianceRate": [0.60, 0.80],
+    "goguryeoFallRate": [0.50, 0.70],
+    "samhanUnificationEndingRate": [0.25, 0.40],
+    "maxAnyFactionWinRate": 0.70
+  }
+}
