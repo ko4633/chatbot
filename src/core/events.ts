@@ -332,10 +332,19 @@ function applyDefenseEffect(payload: Record<string, unknown>, ctx: FoldCtx): Fol
 }
 
 function applyKillHeroEffect(payload: Record<string, unknown>, ctx: FoldCtx): FoldCtx {
-  const { hero } = payload as { hero: HeroId };
+  const { hero, cause } = payload as { hero: HeroId; cause?: string };
   const hs = ctx.state.heroes[hero];
   if (!hs) return ctx;
-  return { ...ctx, state: { ...ctx.state, heroes: { ...ctx.state.heroes, [hero]: { ...hs, status: 'dead', location: null } } } };
+  return {
+    ...ctx,
+    state: {
+      ...ctx.state,
+      heroes: {
+        ...ctx.state.heroes,
+        [hero]: { ...hs, status: 'dead', location: null, deathYear: ctx.state.year, deathSeason: ctx.state.season, deathCause: cause ?? null }
+      }
+    }
+  };
 }
 
 function applySetKingEffect(payload: Record<string, unknown>, ctx: FoldCtx): FoldCtx {
@@ -405,7 +414,12 @@ function applyHeroDeathRolls(
   heroIds.forEach((id, idx) => {
     const roll = rollHeroDeath(r.seed, r.cursor, idx === 0, balanceData.combat);
     r = { seed: r.seed, cursor: roll.nextRngCursor };
-    if (roll.died && heroes[id]) heroes = { ...heroes, [id]: { ...heroes[id], status: 'dead', location: null } };
+    if (roll.died && heroes[id]) {
+      heroes = {
+        ...heroes,
+        [id]: { ...heroes[id], status: 'dead', location: null, deathYear: state.year, deathSeason: state.season, deathCause: 'battle' }
+      };
+    }
   });
   return { state: { ...state, heroes }, rng: r };
 }

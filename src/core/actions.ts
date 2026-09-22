@@ -311,7 +311,16 @@ function resolveAttack(state: GameState, ctx: AttackContext): ActionResult {
     ids.forEach((id, idx) => {
       const roll = rollHeroDeath(next.rngSeed, heroDeathCursor, idx === 0, balance);
       heroDeathCursor = roll.nextRngCursor;
-      if (roll.died) heroesAfter[id] = { ...heroesAfter[id], status: 'dead', location: null };
+      if (roll.died) {
+        heroesAfter[id] = {
+          ...heroesAfter[id],
+          status: 'dead',
+          location: null,
+          deathYear: next.year,
+          deathSeason: next.season,
+          deathCause: 'battle'
+        };
+      }
     });
   }
   applyDeathRolls(heroIds, isAttackerLoser);

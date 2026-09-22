@@ -28,6 +28,7 @@ function radiusFor(terrain: string): number {
 
 export interface MapView {
   update(state: GameState, selected: RegionId | null): void;
+  playBattleAnimation(regionId: RegionId, attackerColor: string, defenderColor: string, winner: 'attacker' | 'defender'): void;
 }
 
 export function createMapView(
@@ -198,5 +199,57 @@ export function createMapView(
     }
   }
 
-  return { update };
+  /**
+   * 삼국 색 병사 대열이 성으로 밀려가는 짧은 전투 모션(설계 7단계).
+   * 출발 지역 좌표는 LastBattleInfo에 없으므로, 성 바깥에서 다가오는 짧은 행군으로 표현한다.
+   * transform/opacity만 사용한다(설계 "화면" 절).
+   */
+  function playBattleAnimation(regionId: RegionId, attackerColor: string, defenderColor: string, winner: 'attacker' | 'defender') {
+    const to = byId[regionId];
+    if (!to) return;
+
+    const angle = ((regionId.charCodeAt(0) + regionId.length) % 8) * (Math.PI / 4);
+    const approachDistance = 46;
+    const fromX = to.x + Math.cos(angle) * approachDistance;
+    const fromY = to.y + Math.sin(angle) * approachDistance;
+
+    const g = document.createElementNS(SVG_NS, 'g');
+    g.setAttribute('class', 'battle-anim');
+    world.appendChild(g);
+
+    const column = document.createElementNS(SVG_NS, 'rect');
+    column.setAttribute('class', 'battle-anim-column');
+    column.setAttribute('width', '12');
+    column.setAttribute('height', '12');
+    column.setAttribute('fill', attackerColor);
+    column.style.transform = `translate(${fromX - 6}px, ${fromY - 6}px)`;
+    g.appendChild(column);
+
+    const impact = document.createElementNS(SVG_NS, 'circle');
+    impact.setAttribute('class', 'battle-anim-impact');
+    impact.setAttribute('r', '10');
+    impact.setAttribute('fill', winner === 'attacker' ? attackerColor : defenderColor);
+    impact.style.transform = `translate(${to.x}px, ${to.y}px) scale(0)`;
+    impact.style.opacity = '0';
+    g.appendChild(impact);
+
+    requestAnimationFrame(() => {
+      column.style.transition = 'transform 0.45s ease-in, opacity 0.45s ease-in';
+      column.style.transform = `translate(${to.x - 6}px, ${to.y - 6}px)`;
+      column.style.opacity = '0.2';
+    });
+
+    setTimeout(() => {
+      impact.style.transition = 'transform 0.35s ease-out, opacity 0.35s ease-out';
+      impact.style.transform = `translate(${to.x}px, ${to.y}px) scale(1.8)`;
+      impact.style.opacity = '0.8';
+      setTimeout(() => {
+        impact.style.opacity = '0';
+      }, 250);
+    }, 420);
+
+    setTimeout(() => g.remove(), 900);
+  }
+
+  return { update, playBattleAnimation };
 }

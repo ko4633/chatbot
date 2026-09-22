@@ -66,7 +66,10 @@ function buildInitialHeroes(startYear: number): Record<string, HeroState> {
       id: h.id,
       faction: h.faction,
       location: active ? capitalByFaction[h.faction] ?? null : null,
-      status: active ? 'active' : 'unborn'
+      status: active ? 'active' : 'unborn',
+      deathYear: null,
+      deathSeason: null,
+      deathCause: null
     };
   }
   return result;
@@ -220,7 +223,7 @@ function processHeroLifecycle(state: GameState): GameState {
       chronicle.push({ year: state.year, season: state.season, text: `${h.name}이(가) 활동을 시작하다.` });
       changed = true;
     } else if (hs.status === 'active' && state.year > h.exitYear) {
-      heroes[h.id] = { ...hs, status: 'dead', location: null };
+      heroes[h.id] = { ...hs, status: 'dead', location: null, deathYear: state.year, deathSeason: state.season, deathCause: null };
       chronicle.push({ year: state.year, season: state.season, text: `${h.name}이(가) 물러나다.` });
       changed = true;
     }

@@ -19,18 +19,23 @@ export interface EndingBannerHandle {
   update(ending: string | null): void;
 }
 
-/** 엔딩 배너: 화면 위에 결과만 알린다(역사 비교 화면은 7단계에서 만든다). */
-export function createEndingBanner(container: HTMLElement): EndingBannerHandle {
+/** 엔딩 배너: 결과를 알리고, "역사 비교" 버튼으로 7단계 비교 화면을 연다. */
+export function createEndingBanner(container: HTMLElement, onCompareHistory: () => void): EndingBannerHandle {
   container.className = 'ending-banner hidden';
+  const label = document.createElement('span');
+  const compareBtn = document.createElement('button');
+  compareBtn.type = 'button';
+  compareBtn.textContent = '역사 비교';
+  compareBtn.addEventListener('click', onCompareHistory);
+  container.append(label, compareBtn);
 
   function update(ending: string | null) {
     if (!ending) {
       container.className = 'ending-banner hidden';
-      container.textContent = '';
       return;
     }
     container.className = 'ending-banner';
-    container.textContent = `이야기가 끝나다 — ${labelFor(ending)}`;
+    label.textContent = `이야기가 끝나다 — ${labelFor(ending)}`;
   }
 
   return { update };

@@ -127,6 +127,10 @@ export interface HeroState {
   faction: FactionId;
   location: RegionId | null;
   status: HeroStatus;
+  /** 이 판에서 죽은 연도·계절·원인. 자연 퇴장(전역)은 원인을 남기지 않는다("내 역사 vs 실제 역사" 화면용). */
+  deathYear: number | null;
+  deathSeason: Season | null;
+  deathCause: string | null;
 }
 
 export interface SiegeState {

@@ -10,7 +10,9 @@ import { createBottomSheet } from './ui/bottomSheet';
 import { createChroniclePanel } from './ui/chroniclePanel';
 import { createEndingBanner } from './ui/endingBanner';
 import { createEventPopup } from './ui/eventPopup';
+import { createHistoryCompare } from './ui/historyCompare';
 import { createResultPopup } from './ui/resultPopup';
+import { createSound } from './ui/sound';
 import { createTopbar } from './ui/topbar';
 import { loadFromLocalStorage, saveToLocalStorage } from './ui/storage';
 
@@ -28,8 +30,9 @@ const popupEl = document.createElement('div');
 const eventPopupEl = document.createElement('div');
 const chroniclePanelEl = document.createElement('div');
 const endingBannerEl = document.createElement('div');
+const historyCompareEl = document.createElement('div');
 
-app.append(topbarEl, mapEl, bottomSheetEl, popupEl, eventPopupEl, chroniclePanelEl, endingBannerEl);
+app.append(topbarEl, mapEl, bottomSheetEl, popupEl, eventPopupEl, chroniclePanelEl, endingBannerEl, historyCompareEl);
 
 let state: GameState = loadFromLocalStorage() ?? createInitialState(DEFAULT_PLAYER_FACTION, DEFAULT_RNG_SEED);
 let selectedRegion: RegionId | null = null;
@@ -41,7 +44,35 @@ const regionNameById = Object.fromEntries(regionsData.regions.map((r) => [r.id, 
 const resultPopup = createResultPopup(popupEl);
 const eventPopup = createEventPopup(eventPopupEl);
 const chroniclePanel = createChroniclePanel(chroniclePanelEl);
-const endingBanner = createEndingBanner(endingBannerEl);
+const historyCompare = createHistoryCompare(historyCompareEl);
+const endingBanner = createEndingBanner(endingBannerEl, () => historyCompare.show(state));
+const sound = createSound();
+
+function battleKey(lb: GameState['lastBattle']): string | null {
+  if (!lb) return null;
+  return `${lb.turn}|${lb.region}|${lb.attackerFaction}|${lb.defenderFaction}|${lb.winner}`;
+}
+let lastSeenBattleKey: string | null = battleKey(state.lastBattle);
+let lastSeenEnding: string | null = state.ending;
+
+function playBattleEffectsIfNew() {
+  const key = battleKey(state.lastBattle);
+  if (key && key !== lastSeenBattleKey && state.lastBattle) {
+    const { region, attackerFaction, defenderFaction, winner } = state.lastBattle;
+    if (region) {
+      mapView.playBattleAnimation(region, factionColors[attackerFaction] ?? '#888888', factionColors[defenderFaction] ?? '#888888', winner);
+    }
+    sound.playClash();
+    if (winner === 'attacker') sound.playVictory();
+    else sound.playDefeat();
+  }
+  lastSeenBattleKey = key;
+
+  if (state.ending && state.ending !== lastSeenEnding) {
+    sound.playVictory();
+  }
+  lastSeenEnding = state.ending;
+}
 
 function refresh() {
   topbar.update(state);
@@ -53,6 +84,7 @@ function refresh() {
   mapView.update(state, selectedRegion);
   chroniclePanel.update(state);
   endingBanner.update(state.ending);
+  playBattleEffectsIfNew();
 
   if (state.pendingChoice) {
     eventPopup.show(state.pendingChoice, (choiceId) => {
