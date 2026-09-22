@@ -151,6 +151,9 @@ describe('완료 기준: 모든 이벤트가 한 번 이상 발동하는 시드�
     untilYear(641);
     expect(state.firedEvents.e2_06_sui_fall).toBe(true);
     expect(state.firedEvents.e3_01_cheonlicheongseong).toBe(true);
+    // e3_01은 decider가 goguryeo(플레이어 아님)라 AI 가중치 추첨으로 결정된다 — 어느 쪽을
+    // 고르든 "발동"으로 치되, e3_04 전제조건(천리장성 축성 플래그)은 명시적으로 맞춰 둔다.
+    state = setFlag(state, 'cheonlicheongseong', true);
 
     // --- 3막 ---
     // 신라 AI가 수십 년간 다라를 계속 증축해 왔을 것이므로, 윤충의 공격이 실제로 먹히도록
@@ -187,10 +190,18 @@ describe('완료 기준: 모든 이벤트가 한 번 이상 발동하는 시드�
     expect(state.firedEvents.e3_07_bidam_rebellion).toBe(true);
 
     // e3_09를 먼저 발동시킨다(나당동맹이 서면 영구히 막히므로 순서가 중요하다): 신라를 궁지로 몬다.
+    // 수십 년간 AI가 실제로 정복한 땅에 따라 신라가 그때그때 어떤 지역을 들고 있는지 달라지므로,
+    // 이름을 나열해 빼앗는 대신 "신라 소유 지역을 5개 이하로" 그 자리에서 동적으로 맞춘다
+    // (수도 서라벌은 남겨 신라 자체는 존속시킨다).
     untilYear(648, 'spring', (s) => {
       let t = setHero(s, 'kimchunchu', 'active', 'seorabeol');
       t = setFlag(t, 'suiFirstInvasion', true);
-      for (const id of ['hangangsangnyu', 'haseulla', 'siljik', 'gugwon', 'gwansanseong', 'samnyeonsanseong']) {
+      const sillaRegions = Object.entries(t.regions)
+        .filter(([, r]) => r.owner === 'silla')
+        .map(([id]) => id)
+        .filter((id) => id !== 'seorabeol');
+      const toStrip = sillaRegions.slice(0, Math.max(0, sillaRegions.length - 4));
+      for (const id of toStrip) {
         t = setOwner(t, id, 'goguryeo');
       }
       t = setRelation(t, 'baekje', 'jungwon', 30);
