@@ -39,7 +39,6 @@ let selectedRegion: RegionId | null = null;
 let marchFrom: RegionId | null = null;
 
 const factionColors = Object.fromEntries(factionsData.factions.map((f) => [f.id, f.color]));
-const regionNameById = Object.fromEntries(regionsData.regions.map((r) => [r.id, r.name]));
 
 const resultPopup = createResultPopup(popupEl);
 const eventPopup = createEventPopup(eventPopupEl);
@@ -129,19 +128,8 @@ const bottomSheet = createBottomSheet(bottomSheetEl, {
     marchFrom = fromRegionId;
     refresh();
   },
-  onMarchTarget(toRegionId) {
+  onMarchTarget(toRegionId, troops) {
     if (!marchFrom) return;
-    const source = state.regions[marchFrom];
-    const input = window.prompt(
-      `${regionNameById[marchFrom]}에서 ${regionNameById[toRegionId]}(으)로 보낼 병력 수를 입력한다 (최대 ${source.garrison.toLocaleString()}).`,
-      String(Math.min(1000, source.garrison))
-    );
-    if (input === null) return;
-    const troops = Number(input);
-    if (!Number.isFinite(troops) || troops <= 0) {
-      resultPopup.show('행할 수 없다', ['올바른 병력 수가 아니다.']);
-      return;
-    }
     const before = state.chronicle.length;
     const fromRegion = marchFrom;
     marchFrom = null;

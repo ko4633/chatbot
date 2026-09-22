@@ -198,6 +198,17 @@ body {
   color: #f2e8cf;
 }
 
+.march-troops-input {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  padding: 6px 8px;
+  border: 1px solid var(--color-border);
+  background: #fff;
+  color: var(--color-ink);
+  border-radius: 4px;
+  width: 100px;
+}
+
 .action-points {
   margin-top: 6px;
   font-size: 13px;

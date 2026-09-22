@@ -9,7 +9,7 @@ export interface BottomSheetHandlers {
   onDomestic(regionId: RegionId): void;
   onFortify(regionId: RegionId): void;
   onMarchBegin(fromRegionId: RegionId): void;
-  onMarchTarget(toRegionId: RegionId): void;
+  onMarchTarget(toRegionId: RegionId, troops: number): void;
   onMarchCancel(): void;
   onDiplomacy(targetFaction: FactionId, kind: DiplomacyKind): void;
 }
@@ -84,10 +84,24 @@ export function createBottomSheet(container: HTMLElement, handlers: BottomSheetH
 
     if (marchFrom) {
       if (isMarchTarget) {
+        const sourceGarrison = state.regions[marchFrom]?.garrison ?? 0;
+        const troopsInput = document.createElement('input');
+        troopsInput.type = 'number';
+        troopsInput.min = '1';
+        troopsInput.max = String(sourceGarrison);
+        troopsInput.step = '100';
+        troopsInput.value = String(Math.min(1000, sourceGarrison));
+        troopsInput.className = 'march-troops-input';
+        panel.appendChild(troopsInput);
+
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.textContent = `이곳으로 출진`;
-        btn.addEventListener('click', () => handlers.onMarchTarget(regionId));
+        btn.addEventListener('click', () => {
+          const troops = Number(troopsInput.value);
+          if (!Number.isFinite(troops) || troops <= 0) return;
+          handlers.onMarchTarget(regionId, Math.min(troops, sourceGarrison));
+        });
         panel.appendChild(btn);
       }
       const cancelBtn = document.createElement('button');
