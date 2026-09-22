@@ -101,12 +101,11 @@ describe('완료 기준: 모든 이벤트가 한 번 이상 발동하는 시드�
     untilYear(555); // e1_04(554)를 지나친다.
     expect(state.firedEvents.e1_04_gwansanseong).toBe(true);
 
-    // e1_05(558~562)에서 "거절"을 택해 gayaProtected가 서지 않게 한다 → e1_06 전제조건.
-    // (이 구간은 어떤 선택이든 기본값(0번)으로 자동 응답하면 "원군을 보내다"가 되어 e1_06을
-    // 영구히 막아버리므로, 창을 지나는 동안에는 선호 선택지를 지정한 step을 써야 한다.)
-    untilYear(559, 'spring', undefined, { e1_05_gaya_rescue_request: 'refuse' });
+    // e1_05(558~562)는 decider가 baekje(플레이어 아님)이므로 AI 가중치 추첨으로 즉시 결정된다.
+    // 어느 쪽을 고르든 "발동"으로 치되, e1_06 전제조건(gayaProtected 없음)은 명시적으로 맞춰 둔다.
+    untilYear(559);
     expect(state.firedEvents.e1_05_gaya_rescue_request).toBe(true);
-    expect(state.flags.gayaProtected).toBeUndefined();
+    state = setFlag(state, 'gayaProtected', false);
 
     untilYear(566); // e1_06(560~565)의 chance(0.5)가 여러 턴에 걸쳐 시도되도록 충분히 지나친다.
     expect(state.firedEvents.e1_06_daegaya_fall).toBe(true);
@@ -121,8 +120,11 @@ describe('완료 기준: 모든 이벤트가 한 번 이상 발동하는 시드�
     expect(state.firedEvents.e2_01_sui_unification).toBe(true);
 
     // e2_02(597~599): 영양왕 즉위 상태(기본 데이터상 590~618이라 이미 왕위에 있다).
+    // decider가 goguryeo(플레이어 아님)라 AI 가중치 추첨으로 즉시 결정된다 — 어느 쪽을 고르든
+    // "발동"으로 치되, e2_03 전제조건(요서 선공 플래그)은 명시적으로 맞춰 둔다.
     untilYear(600);
     expect(state.firedEvents.e2_02_yoseo_firststrike).toBe(true);
+    state = setFlag(state, 'yoseoFirstStrike', true);
 
     untilYear(605); // e2_03(598~604)를 지나친다: 요서 선공 또는 관계<-20+30%로 발동.
     expect(state.firedEvents.e2_03_sui_first_invasion).toBe(true);
@@ -156,6 +158,10 @@ describe('완료 기준: 모든 이벤트가 한 번 이상 발동하는 시드�
     untilYear(642, 'spring', (s) => {
       let t = setOwner(s, 'yodongseong', 'goguryeo');
       t = { ...t, regions: { ...t.regions, dara: { ...t.regions.dara, owner: 'silla', garrison: 3000, defense: 3, project: null } } };
+      // e3_03의 captured 조건은 "이 턴 시작 시점의 소유주"(previousRegionOwners)와 비교하므로,
+      // 강제로 되돌린 다라의 소유주도 그 스냅샷에 함께 반영해 두어야 이번 턴의 정복이
+      // silla→baekje 전이로 정상 인식된다.
+      t = { ...t, previousRegionOwners: { ...t.previousRegionOwners, dara: 'silla' } };
       t = setHero(t, 'uijawang', 'active', 'sabi');
       t = setRelation(t, 'baekje', 'silla', -10);
       return t;
@@ -214,15 +220,19 @@ describe('완료 기준: 모든 이벤트가 한 번 이상 발동하는 시드�
     untilYear(660, 'spring', (s) => setHero(setOwner(s, 'tanhyeon', 'silla'), 'gyebaek', 'active', 'sabi'));
     expect(state.firedEvents.e4_03_hwangsanbeol).toBe(true);
 
+    // e4_04는 "신라가 한 합 패배"(sillaDefeat)를 요구한다 — e4_03 자신의 전투(공격자 신라,
+    // 방어자 백제)에서 계백이 그 합을 막아내면(승자가 방어측) 신라가 패한 것이 되므로,
+    // winner는 방어측('defender')이어야 한다. 전투 rng에 따라 e4_03 자체 결과가 이미
+    // 이를 충족했을 수도 있지만, 그렇지 않은 경우에도 이 조건을 확실히 맞춰 둔다.
     state = {
       ...state,
       lastBattle: {
         region: 'tanhyeon',
         attackerFaction: 'silla',
         defenderFaction: 'baekje',
-        winner: 'attacker',
+        winner: 'defender',
         attackerHeroIds: [],
-        defenderHeroIds: [],
+        defenderHeroIds: ['gyebaek'],
         turn: state.turnNumber
       }
     };

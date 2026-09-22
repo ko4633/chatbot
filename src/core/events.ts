@@ -595,15 +595,39 @@ function applyInvasionResultEffect(payload: Record<string, unknown>, ctx: FoldCt
   return { ...ctx, state: { ...ctx.state, invasionOutcomes } };
 }
 
+const REBEL_FACTION: FactionId = 'rebels';
+
 function applyCivilWarEffect(payload: Record<string, unknown>, ctx: FoldCtx): FoldCtx {
   const { faction, regions } = payload as { faction: FactionId; regions: RegionId[] | string };
   if (!Array.isArray(regions)) return ctx; // "random1" 등 무작위 대상은 5단계에서 구현한다.
   let stateRegions = ctx.state.regions;
+  let touched = false;
   for (const id of regions) {
     const r = stateRegions[id];
-    if (r && r.owner === faction) stateRegions = { ...stateRegions, [id]: { ...r, owner: 'rebels', project: null } };
+    if (r && r.owner === faction) {
+      stateRegions = { ...stateRegions, [id]: { ...r, owner: REBEL_FACTION, project: null } };
+      touched = true;
+    }
   }
-  return { ...ctx, state: { ...ctx.state, regions: stateRegions } };
+  // 반란군은 조종 가능한 세력이 아니지만(AI 행동 대상 아님), 전투 계산이 factions[owner]를
+  // 참조하므로 등록해 두지 않으면 정벌 시 크래시가 난다.
+  const factions =
+    touched && !ctx.state.factions[REBEL_FACTION]
+      ? {
+          ...ctx.state.factions,
+          [REBEL_FACTION]: {
+            id: REBEL_FACTION,
+            gold: 0,
+            food: 0,
+            cohesion: 50,
+            grudge: 0,
+            morale: 1,
+            actionPoints: 0,
+            destroyed: false
+          }
+        }
+      : ctx.state.factions;
+  return { ...ctx, state: { ...ctx.state, regions: stateRegions, factions } };
 }
 
 function applyDestroyFactionEffect(payload: Record<string, unknown>, ctx: FoldCtx): FoldCtx {
