@@ -1073,6 +1073,24 @@
                 "defender": "silla",
                 "region": "dara"
               }
+            },
+            {
+              "branch": {
+                "condition": {
+                  "battleResult": {
+                    "region": "dara",
+                    "result": "attackerVictory"
+                  }
+                },
+                "onTrue": [
+                  {
+                    "setOwner": {
+                      "region": "dara",
+                      "faction": "baekje"
+                    }
+                  }
+                ]
+              }
             }
           ]
         }

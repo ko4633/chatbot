@@ -2,8 +2,10 @@ import { aiTakeAllTurns } from './ai';
 import { balanceData } from './balance';
 import { factionsData, heroesData, regionsData } from './data';
 import { applyAutumnHarvest, applyGoldIncome, applyUpkeep } from './economy';
-import { processEvents } from './events';
+import { checkEndings } from './endings';
+import { processEvents, snapshotOwners } from './events';
 import { checkCapitalCollapse } from './factionRules';
+import { processInvasions } from './invasion';
 import { tickSiege } from './siege';
 import {
   type FactionId,
@@ -96,10 +98,15 @@ export function createInitialState(playerFaction: FactionId, rngSeed: number): G
     eventCursorIndex: 0,
     pendingChoice: null,
     lastBattle: null,
-    invasionOutcomes: {}
+    invasionOutcomes: {},
+    invasions: [],
+    ending: null,
+    previousRegionOwners: {}
   };
+  initial.previousRegionOwners = snapshotOwners(initial);
   // 551년 봄 시작 이벤트(한강 탈환 등)는 첫 advanceTurn을 기다리지 않고 시작 시점에 판정한다.
-  return processEvents(initial);
+  const afterEvents = processEvents(initial);
+  return { ...afterEvents, previousRegionOwners: snapshotOwners(afterEvents) };
 }
 
 function nextSeason(season: Season): { season: Season; yearDelta: number } {
@@ -245,11 +252,14 @@ export function advanceTurn(state: GameState): GameState {
   next = aiTakeAllTurns(next);
   next = processProjects(next);
   next = processSieges(next);
+  next = processInvasions(next);
   next = applyGoldIncome(next, balanceData.economy);
   const upkeep = applyUpkeep(next, balanceData.economy, balanceData.combat.moraleMin);
   next = upkeep.state;
   next = applyAutumnHarvest(next, balanceData.economy);
   next = processHeroLifecycle(next);
+  next = checkEndings(next);
+  next = { ...next, previousRegionOwners: snapshotOwners(next) };
 
   return next;
 }

@@ -361,3 +361,25 @@ body {
   opacity: 0.7;
   font-family: var(--font-ui);
 }
+
+/* 엔딩 배너 */
+.ending-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  padding: 14px 16px;
+  background: var(--color-ink);
+  color: var(--color-land);
+  font-family: var(--font-chronicle);
+  font-size: 16px;
+  text-align: center;
+  opacity: 1;
+  transition: opacity 0.2s ease;
+}
+
+.ending-banner.hidden {
+  opacity: 0;
+  pointer-events: none;
+}

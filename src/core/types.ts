@@ -158,6 +158,25 @@ export interface InvasionOutcome {
   supplyRatio: number;
 }
 
+export type InvasionRoute = 'yoseo' | 'sandonghaero';
+
+/** 진행 중인 외부 침공(요서·산동해로에서 목표로 진군하는 군단). CLAUDE.md "외부 세력" 절. */
+export interface InvasionState {
+  id: string;
+  faction: FactionId;
+  hero: HeroId | null;
+  route: InvasionRoute;
+  target: RegionId;
+  path: RegionId[];
+  stepIndex: number;
+  troops: number;
+  initialTroops: number;
+  supplyRatio: number;
+  turnsElapsed: number;
+  summerExtraAttrition: boolean;
+  startedTurn: number;
+}
+
 export interface PendingChoiceOption {
   id: string;
   label: string;
@@ -190,6 +209,10 @@ export interface GameState {
   pendingChoice: PendingChoice | null;
   lastBattle: LastBattleInfo | null;
   invasionOutcomes: Record<FactionId, InvasionOutcome>;
+  invasions: InvasionState[];
+  ending: string | null;
+  /** 직전 턴이 끝났을 때의 지역 소유. captured 조건이 "그 사이 바뀌었는가"를 판정하는 기준이다. */
+  previousRegionOwners: Record<RegionId, FactionId>;
 }
 
 export interface ChronicleEntry {

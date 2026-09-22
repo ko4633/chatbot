@@ -83,6 +83,7 @@
     "minGarrisonReserve": 500
   },
   "invasion": {
+    "supplyTurnsBeforeAttrition": 4,
     "supplyAttritionAfterSupplyTurnsPerTurn": 0.20,
     "summerMonsoonPlagueExtraAttrition": 0.50,
     "winterWithdrawSupplyThreshold": 0.5

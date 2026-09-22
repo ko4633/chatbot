@@ -8,6 +8,7 @@ import type { GameState, RegionId } from './core/types';
 import { createMapView } from './map/svgMap';
 import { createBottomSheet } from './ui/bottomSheet';
 import { createChroniclePanel } from './ui/chroniclePanel';
+import { createEndingBanner } from './ui/endingBanner';
 import { createEventPopup } from './ui/eventPopup';
 import { createResultPopup } from './ui/resultPopup';
 import { createTopbar } from './ui/topbar';
@@ -26,8 +27,9 @@ const bottomSheetEl = document.createElement('div');
 const popupEl = document.createElement('div');
 const eventPopupEl = document.createElement('div');
 const chroniclePanelEl = document.createElement('div');
+const endingBannerEl = document.createElement('div');
 
-app.append(topbarEl, mapEl, bottomSheetEl, popupEl, eventPopupEl, chroniclePanelEl);
+app.append(topbarEl, mapEl, bottomSheetEl, popupEl, eventPopupEl, chroniclePanelEl, endingBannerEl);
 
 let state: GameState = loadFromLocalStorage() ?? createInitialState(DEFAULT_PLAYER_FACTION, DEFAULT_RNG_SEED);
 let selectedRegion: RegionId | null = null;
@@ -39,6 +41,7 @@ const regionNameById = Object.fromEntries(regionsData.regions.map((r) => [r.id, 
 const resultPopup = createResultPopup(popupEl);
 const eventPopup = createEventPopup(eventPopupEl);
 const chroniclePanel = createChroniclePanel(chroniclePanelEl);
+const endingBanner = createEndingBanner(endingBannerEl);
 
 function refresh() {
   topbar.update(state);
@@ -49,6 +52,7 @@ function refresh() {
   }
   mapView.update(state, selectedRegion);
   chroniclePanel.update(state);
+  endingBanner.update(state.ending);
 
   if (state.pendingChoice) {
     eventPopup.show(state.pendingChoice, (choiceId) => {

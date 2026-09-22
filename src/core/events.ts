@@ -3,16 +3,16 @@ import { clamp, defenderTerrainMultiplier, resolveBattle, rollHeroDeath } from '
 import { eventsData, factionsData, heroesData, regionsData } from './data';
 import { checkCapitalCollapse } from './factionRules';
 import { heroLeadership, NO_COMMANDER_LEADERSHIP } from './heroUtil';
+import { createInvasion } from './invasion';
 import { nextRandom } from './rng';
-import type { FactionId, GameState, HeroId, RegionId, Season } from './types';
+import type { FactionId, GameState, HeroId, InvasionRoute, RegionId, Season } from './types';
 
 /**
  * 이벤트 엔진 (CLAUDE.md "이벤트 엔진" 절).
  * 매 턴 모든 이벤트의 연도 범위와 조건을 평가한다. decider가 있으면 해당 국가가 선택한다
  * (플레이어면 팝업, AI면 가중치 추첨). DSL에 없는 키는 여기서 에러를 던진다.
  *
- * 참고: invasion·navalBattle 효과는 여기서는 즉시 전투로 단순화해 처리한다.
- * 요서·산동해로에서 여러 턴에 걸쳐 진군하는 보급 모델(공식 "외부 세력" 절)은 5단계에서 구현한다.
+ * 참고: navalBattle 효과는 여기서는 즉시 전투로 단순화해 처리한다(해군 세력 모델은 추후 확장 여지).
  * act가 "random"인 랜덤 이벤트(가뭄·역병 등)도 5~6단계에서 세력별 순회 로직과 함께 연결한다.
  */
 
@@ -218,7 +218,8 @@ function evalCond(cond: unknown, ctx: CondCtx, rng: RngThread): { result: boolea
     }
     case 'invasionSupply': {
       const v = val as Thresholds & { faction: FactionId };
-      const ratio = state.invasionOutcomes[v.faction]?.supplyRatio ?? 1;
+      const active = state.invasions.find((inv) => inv.faction === v.faction);
+      const ratio = active ? active.supplyRatio : (state.invasionOutcomes[v.faction]?.supplyRatio ?? 1);
       return { result: withinThresholds(ratio, v), rng };
     }
     case 'invasionResult': {
@@ -550,62 +551,38 @@ function applyNavalBattleEffect(payload: Record<string, unknown>, ctx: FoldCtx):
 }
 
 /**
- * 침공 효과: 지금은 목표 지역에 대한 즉시 전투로 단순화한다.
- * 요서·산동해로 진군, 보급률 감소, 계절별 소모 등 실제 침공 모델은 5단계에서 구현한다.
+ * 침공 효과: 요서·산동해로에서 목표로 진군하는 군단을 만든다. 실제 진군·보급 소모·철수·도착 전투는
+ * processInvasions(invasion.ts)가 매 턴 진행한다(설계 "외부 세력" 절).
  */
 function applyInvasionEffect(payload: Record<string, unknown>, ctx: FoldCtx): FoldCtx {
-  const { faction, troops, target, hero } = payload as { faction: FactionId; troops: number; target: RegionId; hero?: HeroId };
-  const targetRegion = ctx.state.regions[target];
-  const targetStatic = regionsData.regions.find((r) => r.id === target);
-  if (!targetRegion || !targetStatic) return ctx;
-  const defenderFaction = targetRegion.owner;
-  const leadership = hero ? heroLeadership(hero) : NO_COMMANDER_LEADERSHIP;
-  const defenderHeroId = Object.values(ctx.state.heroes).find(
-    (h) => h.faction === defenderFaction && h.status === 'active' && h.location === target
-  )?.id;
-  const defenderLeadership = defenderHeroId ? heroLeadership(defenderHeroId) : NO_COMMANDER_LEADERSHIP;
-  const defenderTerrain = defenderTerrainMultiplier(targetRegion.defense, targetStatic.terrain, balanceData.combat);
-
-  const outcome = resolveBattle(
-    { troops, leadership, morale: 1, terrainMultiplier: 1 },
-    {
-      troops: targetRegion.garrison,
-      leadership: defenderLeadership,
-      morale: ctx.state.factions[defenderFaction]?.morale ?? 1,
-      terrainMultiplier: defenderTerrain
-    },
-    ctx.rng.seed,
-    ctx.rng.cursor,
-    balanceData.combat
-  );
-  const rng: RngThread = { seed: ctx.rng.seed, cursor: outcome.nextRngCursor };
-  const result = outcome.winner === 'attacker' ? 'victorious' : 'defeated';
-
-  let state: GameState = {
-    ...ctx.state,
-    rngCursor: outcome.nextRngCursor,
-    invasionOutcomes: { ...ctx.state.invasionOutcomes, [faction]: { result, at: target, supplyRatio: 1 } },
-    lastBattle: {
-      region: target,
-      attackerFaction: faction,
-      defenderFaction,
-      winner: outcome.winner,
-      attackerHeroIds: hero ? [hero] : [],
-      defenderHeroIds: defenderHeroId ? [defenderHeroId] : [],
-      turn: ctx.state.turnNumber
-    }
+  const { faction, troops, target, hero, route, summerExtraAttrition } = payload as {
+    faction: FactionId;
+    troops: number;
+    target: RegionId;
+    hero?: HeroId;
+    route: InvasionRoute;
+    summerExtraAttrition?: boolean;
   };
-
-  if (outcome.winner === 'attacker') {
-    const survivors = Math.max(0, Math.round(troops * (1 - outcome.winnerLossRatio)));
-    state = { ...state, regions: { ...state.regions, [target]: { ...targetRegion, owner: faction, garrison: survivors, project: null } } };
-    if (targetStatic.capital) state = checkCapitalCollapse(state, defenderFaction, faction);
-  } else {
-    const survivors = Math.max(0, Math.round(targetRegion.garrison * (1 - outcome.winnerLossRatio)));
-    state = { ...state, regions: { ...state.regions, [target]: { ...targetRegion, garrison: survivors } } };
-  }
-
-  return { ...ctx, state, rng };
+  const invasion = createInvasion(ctx.state, {
+    faction,
+    troops,
+    target,
+    route,
+    hero: hero ?? null,
+    summerExtraAttrition: summerExtraAttrition ?? false
+  });
+  if (!invasion) return ctx;
+  const routeName = route === 'yoseo' ? '요서' : '산동해로';
+  const targetName = regionsData.regions.find((r) => r.id === target)?.name ?? target;
+  const state: GameState = {
+    ...ctx.state,
+    invasions: [...ctx.state.invasions, invasion],
+    chronicle: [
+      ...ctx.state.chronicle,
+      { year: ctx.state.year, season: ctx.state.season, text: `${routeName}에서 대군이 ${targetName}을(를) 향해 진군하다.` }
+    ]
+  };
+  return { ...ctx, state };
 }
 
 function applyInvasionResultEffect(payload: Record<string, unknown>, ctx: FoldCtx): FoldCtx {
@@ -768,16 +745,22 @@ function pickWeightedChoice(
   return { choice: chosen, nextRngCursor: draw.nextCursor };
 }
 
-function snapshotOwners(state: GameState): Record<RegionId, FactionId> {
+/** 지역 소유 스냅샷. GameState.previousRegionOwners를 채우는 데 쓴다(advanceTurn 끝에서 호출). */
+export function snapshotOwners(state: GameState): Record<RegionId, FactionId> {
   return Object.fromEntries(Object.entries(state.regions).map(([id, r]) => [id, r.owner]));
 }
 
 /**
  * 한 턴의 이벤트 한 패스를 진행한다. 플레이어가 결정할 선택지를 만나면 그 자리에서 멈추고
  * pendingChoice를 세워 반환한다(전체화면 팝업으로 이어진다). resolveEventChoice가 이어서 진행한다.
+ *
+ * captured 조건은 state.previousRegionOwners(직전 턴이 끝났을 때의 소유)를 기준으로 삼는다.
+ * 그래야 포위·침공·AI 행동처럼 이벤트 판정 이후(같은 턴) 또는 이전 턴에 일어난 소유권 변화도
+ * "그 사이 바뀌었는가"로 올바르게 잡힌다. 같은 패스 안에서 앞선 이벤트가 setOwner로 바꾼 경우도
+ * (previousRegionOwners는 이번 턴 시작 전 값이므로) 그대로 감지된다.
  */
 export function processEvents(state: GameState): GameState {
-  const turnStartRegionOwners = snapshotOwners(state);
+  const turnStartRegionOwners = state.previousRegionOwners;
   let current = state;
   let rng: RngThread = { seed: state.rngSeed, cursor: state.rngCursor };
   let index = state.eventCursorIndex;
@@ -848,7 +831,7 @@ export function resolveEventChoice(state: GameState, choiceId: string): GameStat
   if (ev?.choices) {
     const choice = ev.choices.find((c) => c.id === choiceId);
     if (choice) {
-      const turnStartRegionOwners = snapshotOwners(next);
+      const turnStartRegionOwners = next.previousRegionOwners;
       const rng: RngThread = { seed: next.rngSeed, cursor: next.rngCursor };
       const folded = applyEffects(choice.effects ?? [], { state: next, rng, staged: null, turnStartRegionOwners });
       next = { ...folded.state, rngSeed: folded.rng.seed, rngCursor: folded.rng.cursor };
