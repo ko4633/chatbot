@@ -1,5 +1,5 @@
 import './style.css';
-import { conscriptAction, domesticAction, fortifyAction, marchAction } from './core/actions';
+import { conscriptAction, diplomacyAction, domesticAction, fortifyAction, marchAction } from './core/actions';
 import { factionsData, regionsData } from './core/data';
 import { resolveEventChoice } from './core/events';
 import { advanceTurn, createInitialState } from './core/state';
@@ -117,6 +117,10 @@ const bottomSheet = createBottomSheet(bottomSheetEl, {
   onMarchCancel() {
     marchFrom = null;
     refresh();
+  },
+  onDiplomacy(targetFaction, kind) {
+    const before = state.chronicle.length;
+    handleResult(diplomacyAction(state, state.playerFaction, targetFaction, kind), before);
   }
 });
 

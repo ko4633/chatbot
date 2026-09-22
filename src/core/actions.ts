@@ -1,11 +1,13 @@
 import { balanceData } from './balance';
 import {
   attackerSeasonCrossingMultiplier,
+  clamp,
   defenderTerrainMultiplier,
   resolveBattle,
   rollHeroDeath
 } from './combat';
-import { regionsData } from './data';
+import { factionsData, regionsData } from './data';
+import { getRelationValue } from './events';
 import { checkCapitalCollapse } from './factionRules';
 import { heroLeadership, NO_COMMANDER_LEADERSHIP } from './heroUtil';
 import { assaultAttackerCasualties, canAssault, siegeInitialFoodTurns } from './siege';
@@ -36,6 +38,29 @@ function findAdjacency(fromId: RegionId, toId: RegionId): AdjacencyType | null {
 function requireActionPoint(state: GameState, faction: FactionId): string | null {
   if (state.factions[faction].actionPoints <= 0) return '행동력이 남아있지 않다.';
   return null;
+}
+
+function setRelation(state: GameState, a: FactionId, b: FactionId, value: number): GameState {
+  const clamped = clamp(value, balanceData.diplomacy.min, balanceData.diplomacy.max);
+  const relations = [...state.relations];
+  const idx = relations.findIndex((r) => (r.a === a && r.b === b) || (r.a === b && r.b === a));
+  if (idx >= 0) relations[idx] = { ...relations[idx], value: clamped };
+  else relations.push({ a, b, value: clamped });
+  return { ...state, relations };
+}
+
+function adjustRelation(state: GameState, a: FactionId, b: FactionId, delta: number): GameState {
+  return setRelation(state, a, b, getRelationValue(state, a, b) + delta);
+}
+
+/** 동맹 깨고 공격하면 전 세력과의 관계가 -15 된다(설계 "외교" 절). */
+function applyBrokenAllianceReputationPenalty(state: GameState, faction: FactionId): GameState {
+  let next = state;
+  for (const otherId of Object.keys(state.factions)) {
+    if (otherId === faction) continue;
+    next = adjustRelation(next, faction, otherId, balanceData.diplomacy.brokenAllianceRelationPenaltyAll);
+  }
+  return next;
 }
 
 export function conscriptAction(state: GameState, faction: FactionId, regionId: RegionId): ActionResult {
@@ -202,6 +227,9 @@ function resolveAttack(state: GameState, ctx: AttackContext): ActionResult {
   if (!targetStatic) return { ok: false, reason: '알 수 없는 지역이다.' };
   const defenderFaction = target.owner;
 
+  const wasAllied = getRelationValue(state, faction, defenderFaction) >= balanceData.diplomacy.allianceThreshold;
+  if (wasAllied) state = applyBrokenAllianceReputationPenalty(state, faction);
+
   const commanderId = heroIds[0] ?? null;
   const attackerLeadership = commanderId ? heroLeadership(commanderId) : NO_COMMANDER_LEADERSHIP;
   const defenderHeroId =
@@ -336,5 +364,62 @@ function resolveAttack(state: GameState, ctx: AttackContext): ActionResult {
       turn: state.turnNumber
     }
   };
+  return { ok: true, state: next };
+}
+
+export type DiplomacyKind = 'envoy' | 'tribute' | 'allianceProposal' | 'declareWar';
+
+/** 외교: 사신(envoy)·조공(tribute)·동맹 제안(allianceProposal)·선전포고(declareWar) (CLAUDE.md "외교" 절). */
+export function diplomacyAction(
+  state: GameState,
+  faction: FactionId,
+  targetFaction: FactionId,
+  kind: DiplomacyKind
+): ActionResult {
+  const apError = requireActionPoint(state, faction);
+  if (apError) return { ok: false, reason: apError };
+  if (faction === targetFaction) return { ok: false, reason: '스스로와 외교할 수 없다.' };
+  const targetState = state.factions[targetFaction];
+  if (!targetState || targetState.destroyed) return { ok: false, reason: '이미 사라진 세력이다.' };
+
+  const targetName = factionsData.factions.find((f) => f.id === targetFaction)?.name ?? targetFaction;
+  let next = state;
+
+  switch (kind) {
+    case 'envoy': {
+      next = adjustRelation(next, faction, targetFaction, balanceData.diplomacy.envoyRelationDelta);
+      next = withChronicle(next, `${targetName}에 사신을 보내다.`);
+      break;
+    }
+    case 'tribute': {
+      const fs = next.factions[faction];
+      if (fs.gold < balanceData.diplomacy.tributeGoldCost) return { ok: false, reason: '조공을 보낼 금이 부족하다.' };
+      next = {
+        ...next,
+        factions: { ...next.factions, [faction]: { ...fs, gold: fs.gold - balanceData.diplomacy.tributeGoldCost } }
+      };
+      next = adjustRelation(next, faction, targetFaction, balanceData.diplomacy.tributeRelationDelta);
+      next = withChronicle(next, `${targetName}에 조공을 보내다.`);
+      break;
+    }
+    case 'allianceProposal': {
+      const current = getRelationValue(next, faction, targetFaction);
+      const receptive = current + balanceData.diplomacy.allianceProposalReceptivenessMargin >= balanceData.diplomacy.allianceThreshold;
+      if (receptive) {
+        next = setRelation(next, faction, targetFaction, balanceData.diplomacy.allianceThreshold);
+        next = withChronicle(next, `${targetName}과(와) 동맹을 맺다.`);
+      } else {
+        next = withChronicle(next, `${targetName}이(가) 동맹 제안을 물리치다.`);
+      }
+      break;
+    }
+    case 'declareWar': {
+      next = setRelation(next, faction, targetFaction, balanceData.diplomacy.warThreshold);
+      next = withChronicle(next, `${targetName}에 선전포고하다.`);
+      break;
+    }
+  }
+
+  next = consumeActionPoint(next, faction);
   return { ok: true, state: next };
 }

@@ -1,3 +1,4 @@
+import { aiTakeAllTurns } from './ai';
 import { balanceData } from './balance';
 import { factionsData, heroesData, regionsData } from './data';
 import { applyAutumnHarvest, applyGoldIncome, applyUpkeep } from './economy';
@@ -222,8 +223,9 @@ function processHeroLifecycle(state: GameState): GameState {
 }
 
 /**
- * 턴 진행: 계절 처리 → 이벤트 판정 → (행동력 초기화, 플레이어/AI 행동은 actions.ts를 통해 턴 중 수행) →
- * 내정/축성 진행 → 포위 진행 → 경제(금·유지비·가을수확) → 영웅 등장·퇴장.
+ * 턴 진행: 계절 처리 → 이벤트 판정 → (플레이어 행동은 이 함수 호출 전 actions.ts를 통해 이미 반영됨) →
+ * AI 행동(방어 우선 → 약한 인접 적 공격 → 내정) → 내정/축성 진행 → 포위 진행 →
+ * 경제(금·유지비·가을수확) → 영웅 등장·퇴장.
  */
 export function advanceTurn(state: GameState): GameState {
   const { season, yearDelta } = nextSeason(state.season);
@@ -240,6 +242,7 @@ export function advanceTurn(state: GameState): GameState {
 
   next = resetActionPoints(next);
   next = processEvents(next);
+  next = aiTakeAllTurns(next);
   next = processProjects(next);
   next = processSieges(next);
   next = applyGoldIncome(next, balanceData.economy);

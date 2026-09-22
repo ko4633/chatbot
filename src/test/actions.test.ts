@@ -190,7 +190,8 @@ describe('marchAction: 적 지역 공격 - 병력 열세면 포위, 압도적이
     state = started.state;
     const foodTurns = state.sieges[0].foodTurnsRemaining;
     for (let i = 0; i < foodTurns; i++) state = advanceTurn(state);
-    expect(state.sieges).toHaveLength(0);
+    // 4단계부터는 다른 세력의 AI도 자체적으로 포위를 벌일 수 있으므로, 이 시도의 포위만 사라졌는지 확인한다.
+    expect(state.sieges.some((s) => s.region === 'daegaya' && s.attacker === 'silla')).toBe(false);
     expect(state.regions.daegaya.owner).toBe('silla');
   });
 });

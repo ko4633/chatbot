@@ -56,8 +56,11 @@ describe('이벤트 엔진: 1막 배신의 한강', () => {
 
   it('e1_03 신라의 선택: 한성 수비 5000 미만이면 기습이 성공해 한성이 신라로 넘어간다', () => {
     let state = createInitialState('silla', 1);
+    state = advanceTo(state, 7); // 551년 봄 → 552년 겨울(아직 553년 전이라 이벤트가 발동하지 않는다)
+    // 마지막 턴 직전에 수비를 낮춘다: 이벤트 판정은 그 턴의 AI 행동보다 먼저 일어나므로
+    // 백제 AI가 미리 증원할 시간이 없다(4단계에서 AI가 지역을 스스로 보강하기 시작했다).
     state = { ...state, regions: { ...state.regions, hanseong: { ...state.regions.hanseong, garrison: 4000 } } };
-    state = advanceTo(state, 8); // 551년 봄 → 553년 봄
+    state = advanceTurn(state); // 553년 봄
     expect(state.pendingChoice?.eventId).toBe('e1_03_silla_choice');
 
     const baekjeCohesionBefore = state.factions.baekje.cohesion;
@@ -109,18 +112,18 @@ describe('이벤트 엔진: 1막 배신의 한강', () => {
     expect(stillOnce).toBe(najeAllianceFires);
   });
 
-  it('AI가 조건을 채우지 못하면(가야를 보호하면) 대가야가 멸망하지 않는다', () => {
+  it('가야를 보호하면 대가야 멸망 "각본" 이벤트(e1_06)는 조건이 막혀 발동하지 않는다', () => {
     let state = createInitialState('baekje', 1);
-    // 558~562 구원 요청에서 원군을 보내기로 하면 gayaProtected 플래그가 서고, 대가야 멸망(560~565) 조건이 막힌다.
+    // 558~562 구원 요청에서 원군을 보내기로 하면 gayaProtected 플래그가 서고, 대가야 멸망(560~565)의
+    // 조건(가야 보호 아님)이 막힌다. (단, 4단계부터는 신라 AI가 이 각본과 무관하게 순수 전력으로
+    // 대가야를 정복할 수도 있다 — 이 테스트는 "각본 이벤트가 막히는지"만 검증한다.)
     state = autoAdvance(state, 7 * 4); // 551 → 558년 부근까지
-    // 가야 구원 요청 선택 팝업이 뜨면 "원군 보내기"를 명시적으로 고른다.
     if (state.pendingChoice?.eventId === 'e1_05_gaya_rescue_request') {
       state = resolveEventChoice(state, 'send_reinforcements');
     }
     state = autoAdvance(state, 7 * 4); // 565년 부근까지 계속 진행
     expect(state.flags.gayaProtected).toBe(true);
-    expect(state.factions.gaya.destroyed).toBe(false);
-    expect(state.regions.daegaya.owner).toBe('gaya');
+    expect(state.firedEvents.e1_06_daegaya_fall).toBeUndefined();
   });
 
   it('연대 조건 없는 이벤트가 시작 시점에 잘못 발동하지 않는다(형제의 분열 회귀 테스트)', () => {

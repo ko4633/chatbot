@@ -76,6 +76,16 @@ export interface BalanceData {
     warThreshold: number;
     brokenAllianceRelationPenaltyAll: number;
     hanRiverRouteJungwonDiplomacyCostMultiplier: number;
+    envoyRelationDelta: number;
+    tributeGoldCost: number;
+    tributeRelationDelta: number;
+    allianceProposalReceptivenessMargin: number;
+  };
+  ai: {
+    defenseThreatMarginRatio: number;
+    attackPowerMarginRatio: number;
+    attackTroopCommitRatio: number;
+    minGarrisonReserve: number;
   };
   invasion: Record<string, number>;
   randomEvents: Record<string, unknown>;

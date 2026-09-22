@@ -70,7 +70,17 @@
     "allianceThreshold": 60,
     "warThreshold": -30,
     "brokenAllianceRelationPenaltyAll": -15,
-    "hanRiverRouteJungwonDiplomacyCostMultiplier": 0.5
+    "hanRiverRouteJungwonDiplomacyCostMultiplier": 0.5,
+    "envoyRelationDelta": 5,
+    "tributeGoldCost": 100,
+    "tributeRelationDelta": 15,
+    "allianceProposalReceptivenessMargin": 20
+  },
+  "ai": {
+    "defenseThreatMarginRatio": 0.5,
+    "attackPowerMarginRatio": 1.5,
+    "attackTroopCommitRatio": 0.7,
+    "minGarrisonReserve": 500
   },
   "invasion": {
     "supplyAttritionAfterSupplyTurnsPerTurn": 0.20,

@@ -72,7 +72,7 @@ function withinThresholds(value: number, t: Thresholds): boolean {
   return true;
 }
 
-function getRelationValue(state: GameState, a: FactionId, b: FactionId): number {
+export function getRelationValue(state: GameState, a: FactionId, b: FactionId): number {
   const r = state.relations.find((r) => (r.a === a && r.b === b) || (r.a === b && r.b === a));
   return r ? r.value : 0;
 }

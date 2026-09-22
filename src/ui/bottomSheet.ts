@@ -1,6 +1,8 @@
 import { balanceData } from '../core/balance';
 import { factionsData, regionsData } from '../core/data';
-import type { GameState, RegionId } from '../core/types';
+import { getRelationValue } from '../core/events';
+import type { DiplomacyKind } from '../core/actions';
+import type { FactionId, GameState, RegionId } from '../core/types';
 
 export interface BottomSheetHandlers {
   onConscript(regionId: RegionId): void;
@@ -9,7 +11,15 @@ export interface BottomSheetHandlers {
   onMarchBegin(fromRegionId: RegionId): void;
   onMarchTarget(toRegionId: RegionId): void;
   onMarchCancel(): void;
+  onDiplomacy(targetFaction: FactionId, kind: DiplomacyKind): void;
 }
+
+const DIPLOMACY_LABEL: Record<DiplomacyKind, string> = {
+  envoy: '사신',
+  tribute: '조공',
+  allianceProposal: '동맹 제안',
+  declareWar: '선전포고'
+};
 
 export interface BottomSheetHandle {
   show(regionId: RegionId, state: GameState, marchFrom: RegionId | null): void;
@@ -63,7 +73,7 @@ export function createBottomSheet(container: HTMLElement, handlers: BottomSheetH
       </dl>
       <div class="adjacent-list">인접: ${adjacentNames || '없음'}</div>
       ${
-        isPlayerOwned || marchFrom
+        isPlayerOwned || marchFrom || (owner && !isPlayerOwned)
           ? `<div class="action-points">행동력 ${ap} / ${balanceData.turn.actionsPerFaction}</div><div class="action-panel"></div>`
           : ''
       }
@@ -95,7 +105,24 @@ export function createBottomSheet(container: HTMLElement, handlers: BottomSheetH
       return;
     }
 
-    if (!isPlayerOwned) return;
+    if (!isPlayerOwned) {
+      if (!owner || dynamic.owner === state.playerFaction) return;
+      const relation = getRelationValue(state, state.playerFaction, dynamic.owner);
+      const relationNote = document.createElement('div');
+      relationNote.className = 'action-points';
+      relationNote.textContent = `${owner.name} 관계: ${relation}`;
+      panel.parentElement?.insertBefore(relationNote, panel);
+
+      (Object.keys(DIPLOMACY_LABEL) as DiplomacyKind[]).forEach((kind) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = DIPLOMACY_LABEL[kind];
+        btn.disabled = ap <= 0;
+        btn.addEventListener('click', () => handlers.onDiplomacy(dynamic.owner, kind));
+        panel.appendChild(btn);
+      });
+      return;
+    }
 
     const conscriptBtn = document.createElement('button');
     conscriptBtn.type = 'button';
