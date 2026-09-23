@@ -484,3 +484,160 @@ body {
   color: var(--color-ink);
   border-radius: 4px;
 }
+
+/* 영웅 명단 사이드 탭(연대기 반대쪽) */
+.hero-panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: min(320px, 85vw);
+  background: var(--color-land);
+  border-right: 1px solid var(--color-border);
+  z-index: 15;
+  padding: 16px;
+  overflow-y: auto;
+  transform: translateX(0);
+  transition: transform 0.2s ease;
+}
+
+.hero-panel.closed {
+  transform: translateX(-100%);
+}
+
+.hero-panel ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.hero-panel li {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 13px;
+}
+
+.hero-name {
+  font-family: var(--font-chronicle);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.hero-king {
+  font-size: 11px;
+  padding: 1px 6px;
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  margin-left: 4px;
+}
+
+.hero-stats,
+.hero-location {
+  opacity: 0.8;
+  margin-top: 2px;
+}
+
+.hero-traits {
+  margin-top: 2px;
+  font-family: var(--font-chronicle);
+  opacity: 0.75;
+}
+
+.hero-empty {
+  opacity: 0.7;
+}
+
+/* 출진 시 영웅 선택 */
+.march-hero-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.march-hero-option {
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 시작 화면: 나라 선택 */
+.faction-select-backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--color-sea);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  opacity: 1;
+  transition: opacity 0.2s ease;
+}
+
+.faction-select-backdrop.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.faction-select-card {
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+}
+
+.faction-select-card h1 {
+  font-family: var(--font-chronicle);
+  color: var(--color-land);
+  font-size: 26px;
+  margin: 0 0 8px 0;
+}
+
+.faction-select-card p {
+  font-family: var(--font-chronicle);
+  color: var(--color-land);
+  opacity: 0.85;
+  margin: 0 0 24px 0;
+}
+
+.faction-select-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.faction-select-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-land);
+  color: var(--color-ink);
+  text-align: left;
+  font-family: var(--font-ui);
+}
+
+.faction-select-swatch {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--faction-color);
+  border: 1px solid var(--color-border);
+}
+
+.faction-select-name {
+  flex: 0 0 auto;
+  font-family: var(--font-chronicle);
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.faction-select-notes {
+  font-size: 12px;
+  opacity: 0.75;
+}

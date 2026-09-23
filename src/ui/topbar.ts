@@ -6,7 +6,12 @@ export interface TopbarHandle {
   update(state: GameState): void;
 }
 
-export function createTopbar(container: HTMLElement, onNextTurn: () => void, onToggleChronicle: () => void): TopbarHandle {
+export function createTopbar(
+  container: HTMLElement,
+  onNextTurn: () => void,
+  onToggleChronicle: () => void,
+  onToggleHeroes: () => void
+): TopbarHandle {
   container.innerHTML = '';
   container.className = 'topbar';
 
@@ -23,6 +28,11 @@ export function createTopbar(container: HTMLElement, onNextTurn: () => void, onT
   const spacer = document.createElement('span');
   spacer.className = 'spacer';
 
+  const heroesBtn = document.createElement('button');
+  heroesBtn.type = 'button';
+  heroesBtn.textContent = '영웅';
+  heroesBtn.addEventListener('click', onToggleHeroes);
+
   const chronicleBtn = document.createElement('button');
   chronicleBtn.type = 'button';
   chronicleBtn.textContent = '연대기';
@@ -33,7 +43,7 @@ export function createTopbar(container: HTMLElement, onNextTurn: () => void, onT
   nextTurnBtn.textContent = '다음 계절';
   nextTurnBtn.addEventListener('click', onNextTurn);
 
-  container.append(dateEl, goldEl, foodEl, cohesionEl, spacer, chronicleBtn, nextTurnBtn);
+  container.append(dateEl, goldEl, foodEl, cohesionEl, spacer, heroesBtn, chronicleBtn, nextTurnBtn);
 
   function update(state: GameState) {
     const faction = factionsData.factions.find((f) => f.id === state.playerFaction);

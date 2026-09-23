@@ -10,6 +10,8 @@ import { createBottomSheet } from './ui/bottomSheet';
 import { createChroniclePanel } from './ui/chroniclePanel';
 import { createEndingBanner } from './ui/endingBanner';
 import { createEventPopup } from './ui/eventPopup';
+import { createFactionSelect } from './ui/factionSelect';
+import { createHeroPanel } from './ui/heroPanel';
 import { createHistoryCompare } from './ui/historyCompare';
 import { createResultPopup } from './ui/resultPopup';
 import { createSound } from './ui/sound';
@@ -29,12 +31,26 @@ const bottomSheetEl = document.createElement('div');
 const popupEl = document.createElement('div');
 const eventPopupEl = document.createElement('div');
 const chroniclePanelEl = document.createElement('div');
+const heroPanelEl = document.createElement('div');
 const endingBannerEl = document.createElement('div');
 const historyCompareEl = document.createElement('div');
+const factionSelectEl = document.createElement('div');
 
-app.append(topbarEl, mapEl, bottomSheetEl, popupEl, eventPopupEl, chroniclePanelEl, endingBannerEl, historyCompareEl);
+app.append(
+  topbarEl,
+  mapEl,
+  bottomSheetEl,
+  popupEl,
+  eventPopupEl,
+  chroniclePanelEl,
+  heroPanelEl,
+  endingBannerEl,
+  historyCompareEl,
+  factionSelectEl
+);
 
-let state: GameState = loadFromLocalStorage() ?? createInitialState(DEFAULT_PLAYER_FACTION, DEFAULT_RNG_SEED);
+const existingSave = loadFromLocalStorage();
+let state: GameState = existingSave ?? createInitialState(DEFAULT_PLAYER_FACTION, DEFAULT_RNG_SEED);
 let selectedRegion: RegionId | null = null;
 let marchFrom: RegionId | null = null;
 
@@ -43,8 +59,10 @@ const factionColors = Object.fromEntries(factionsData.factions.map((f) => [f.id,
 const resultPopup = createResultPopup(popupEl);
 const eventPopup = createEventPopup(eventPopupEl);
 const chroniclePanel = createChroniclePanel(chroniclePanelEl);
+const heroPanel = createHeroPanel(heroPanelEl);
 const historyCompare = createHistoryCompare(historyCompareEl);
 const endingBanner = createEndingBanner(endingBannerEl, () => historyCompare.show(state));
+const factionSelect = createFactionSelect(factionSelectEl);
 const sound = createSound();
 
 function battleKey(lb: GameState['lastBattle']): string | null {
@@ -82,6 +100,7 @@ function refresh() {
   }
   mapView.update(state, selectedRegion);
   chroniclePanel.update(state);
+  heroPanel.update(state);
   endingBanner.update(state.ending);
   playBattleEffectsIfNew();
 
@@ -128,13 +147,13 @@ const bottomSheet = createBottomSheet(bottomSheetEl, {
     marchFrom = fromRegionId;
     refresh();
   },
-  onMarchTarget(toRegionId, troops) {
+  onMarchTarget(toRegionId, troops, heroIds) {
     if (!marchFrom) return;
     const before = state.chronicle.length;
     const fromRegion = marchFrom;
     marchFrom = null;
     handleResult(
-      marchAction(state, { faction: state.playerFaction, fromRegion, toRegion: toRegionId, troops, heroIds: [] }),
+      marchAction(state, { faction: state.playerFaction, fromRegion, toRegion: toRegionId, troops, heroIds }),
       before
     );
   },
@@ -171,8 +190,19 @@ const topbar = createTopbar(
   },
   () => {
     chroniclePanel.toggle();
+  },
+  () => {
+    heroPanel.toggle();
   }
 );
 
-refresh();
-saveToLocalStorage(state);
+if (existingSave) {
+  refresh();
+  saveToLocalStorage(state);
+} else {
+  factionSelect.show((factionId) => {
+    state = createInitialState(factionId, Date.now());
+    factionSelect.hide();
+    persistAndRefresh();
+  });
+}

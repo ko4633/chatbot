@@ -1,15 +1,15 @@
 import { balanceData } from '../core/balance';
-import { factionsData, regionsData } from '../core/data';
+import { factionsData, heroesData, regionsData } from '../core/data';
 import { getRelationValue } from '../core/events';
 import type { DiplomacyKind } from '../core/actions';
-import type { FactionId, GameState, RegionId } from '../core/types';
+import type { FactionId, GameState, HeroId, RegionId } from '../core/types';
 
 export interface BottomSheetHandlers {
   onConscript(regionId: RegionId): void;
   onDomestic(regionId: RegionId): void;
   onFortify(regionId: RegionId): void;
   onMarchBegin(fromRegionId: RegionId): void;
-  onMarchTarget(toRegionId: RegionId, troops: number): void;
+  onMarchTarget(toRegionId: RegionId, troops: number, heroIds: HeroId[]): void;
   onMarchCancel(): void;
   onDiplomacy(targetFaction: FactionId, kind: DiplomacyKind): void;
 }
@@ -40,8 +40,19 @@ export function createBottomSheet(container: HTMLElement, handlers: BottomSheetH
 
   const byId = Object.fromEntries(regionsData.regions.map((r) => [r.id, r]));
   const factionById = Object.fromEntries(factionsData.factions.map((f) => [f.id, f]));
+  // 출진 중 고른 영웅(최대 3명, 설계 "출진(인접 지역, 영웅 최대 3명)"). 출진 시작 지역이 바뀌면 비운다.
+  let selectedMarchHeroIds: HeroId[] = [];
+  let selectedMarchFrom: RegionId | null = null;
+
+  function heroesStationedAt(state: GameState, regionId: RegionId) {
+    return heroesData.heroes.filter((h) => state.heroes[h.id]?.status === 'active' && state.heroes[h.id]?.location === regionId);
+  }
 
   function show(regionId: RegionId, state: GameState, marchFrom: RegionId | null) {
+    if (marchFrom !== selectedMarchFrom) {
+      selectedMarchHeroIds = [];
+      selectedMarchFrom = marchFrom;
+    }
     const staticRegion = byId[regionId];
     const dynamic = state.regions[regionId];
     if (!staticRegion || !dynamic) return;
@@ -59,6 +70,7 @@ export function createBottomSheet(container: HTMLElement, handlers: BottomSheetH
       marchFrom !== null &&
       marchFrom !== regionId &&
       byId[marchFrom]?.adjacent.some((a) => a.to === regionId);
+    const stationedHeroes = heroesStationedAt(state, regionId);
 
     container.innerHTML = `
       <h2>${staticRegion.name}${staticRegion.modernName ? `<small> (${staticRegion.modernName})</small>` : ''}</h2>
@@ -70,6 +82,7 @@ export function createBottomSheet(container: HTMLElement, handlers: BottomSheetH
         <dt>인구</dt><dd>${dynamic.pop}등급</dd>
         <dt>생산</dt><dd>${dynamic.food}등급</dd>
         ${dynamic.project ? `<dt>공사</dt><dd>${dynamic.project.kind === 'domestic' ? '내정' : '축성'} (${dynamic.project.remainingTurns}턴 남음)</dd>` : ''}
+        ${stationedHeroes.length ? `<dt>주둔 영웅</dt><dd>${stationedHeroes.map((h) => h.name).join(', ')}</dd>` : ''}
       </dl>
       <div class="adjacent-list">인접: ${adjacentNames || '없음'}</div>
       ${
@@ -100,7 +113,7 @@ export function createBottomSheet(container: HTMLElement, handlers: BottomSheetH
         btn.addEventListener('click', () => {
           const troops = Number(troopsInput.value);
           if (!Number.isFinite(troops) || troops <= 0) return;
-          handlers.onMarchTarget(regionId, Math.min(troops, sourceGarrison));
+          handlers.onMarchTarget(regionId, Math.min(troops, sourceGarrison), selectedMarchHeroIds);
         });
         panel.appendChild(btn);
       }
@@ -110,6 +123,28 @@ export function createBottomSheet(container: HTMLElement, handlers: BottomSheetH
       cancelBtn.addEventListener('click', () => handlers.onMarchCancel());
       panel.appendChild(cancelBtn);
       if (isMarching) {
+        const availableHeroes = heroesStationedAt(state, marchFrom).filter((h) => h.faction === state.playerFaction);
+        if (availableHeroes.length) {
+          const heroPicker = document.createElement('div');
+          heroPicker.className = 'march-hero-picker';
+          for (const h of availableHeroes) {
+            const label = document.createElement('label');
+            label.className = 'march-hero-option';
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = selectedMarchHeroIds.includes(h.id);
+            checkbox.disabled = !checkbox.checked && selectedMarchHeroIds.length >= balanceData.turn.maxHeroesPerCampaign;
+            checkbox.addEventListener('change', () => {
+              selectedMarchHeroIds = checkbox.checked
+                ? [...selectedMarchHeroIds, h.id]
+                : selectedMarchHeroIds.filter((id) => id !== h.id);
+              show(regionId, state, marchFrom);
+            });
+            label.append(checkbox, document.createTextNode(` ${h.name}`));
+            heroPicker.appendChild(label);
+          }
+          panel.appendChild(heroPicker);
+        }
         const note = document.createElement('div');
         note.textContent = '인접 지역을 눌러 목표를 고른다.';
         note.style.fontSize = '12px';
