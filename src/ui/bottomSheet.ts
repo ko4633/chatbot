@@ -80,6 +80,7 @@ export function createBottomSheet(container: HTMLElement, handlers: BottomSheetH
         <dt>세력</dt><dd>${owner?.name ?? dynamic.owner}</dd>
         <dt>지형</dt><dd>${TERRAIN_LABEL[staticRegion.terrain] ?? staticRegion.terrain}</dd>
         <dt>수비</dt><dd>${dynamic.garrison.toLocaleString()}</dd>
+        ${isPlayerOwned ? `<dt>출진 가능 병력</dt><dd>${dynamic.garrison.toLocaleString()}</dd>` : ''}
         <dt>성벽</dt><dd>${dynamic.defense}</dd>
         <dt>인구</dt><dd>${dynamic.pop}등급</dd>
         <dt>생산</dt><dd>${dynamic.food}등급</dd>
