@@ -90,8 +90,8 @@ export function createMapView(
     g.appendChild(circle);
 
     const label = document.createElementNS(SVG_NS, 'text');
-    label.setAttribute('y', String(radiusFor(region.terrain) + 14));
-    label.setAttribute('font-size', region.terrain === 'external' ? '11' : '13');
+    label.setAttribute('y', String(radiusFor(region.terrain) + 15));
+    label.setAttribute('font-size', region.terrain === 'external' ? '13' : '15');
     label.textContent = region.name;
     g.appendChild(label);
 
@@ -103,7 +103,41 @@ export function createMapView(
   }
 
   // --- 팬/줌 ---
-  let view: ViewBox = { x: 0, y: 0, w: VIEW_W, h: VIEW_H };
+  // 초기 화면은 고정 캔버스 전체가 아니라 실제 지역이 있는 범위에 맞춰 확대한다.
+  // 그래야 상하좌우 빈 공간 없이 꽉 차고, 지역 이름도 더 크고 읽기 쉽게 보인다.
+  function initialFitView(): ViewBox {
+    const pad = 60;
+    const xs = regionsData.regions.map((r) => r.x);
+    const ys = regionsData.regions.map((r) => r.y);
+    let minX = Math.min(...xs) - pad;
+    let maxX = Math.max(...xs) + pad;
+    let minY = Math.min(...ys) - pad;
+    let maxY = Math.max(...ys) + pad;
+    let w = maxX - minX;
+    let h = maxY - minY;
+
+    const rect = container.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) {
+      const targetAspect = rect.width / rect.height;
+      const contentAspect = w / h;
+      if (contentAspect < targetAspect) {
+        const newW = h * targetAspect;
+        const cx = (minX + maxX) / 2;
+        minX = cx - newW / 2;
+        maxX = cx + newW / 2;
+        w = newW;
+      } else {
+        const newH = w / targetAspect;
+        const cy = (minY + maxY) / 2;
+        minY = cy - newH / 2;
+        maxY = cy + newH / 2;
+        h = newH;
+      }
+    }
+    return { x: minX, y: minY, w, h };
+  }
+
+  let view: ViewBox = initialFitView();
   const pointers = new Map<number, { x: number; y: number }>();
   let lastPinchDist = 0;
   let dragStart: { x: number; y: number; view: ViewBox } | null = null;

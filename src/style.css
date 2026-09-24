@@ -36,14 +36,13 @@ body {
   z-index: 20;
   flex: 0 0 auto;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
+  gap: 8px 12px;
   padding: 8px 12px;
   background: var(--color-land);
   border-bottom: 1px solid var(--color-border);
   font-size: 14px;
-  white-space: nowrap;
-  overflow-x: auto;
 }
 
 .topbar .date {
@@ -61,7 +60,14 @@ body {
 }
 
 .topbar .spacer {
-  flex: 1 1 auto;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.topbar-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: nowrap;
 }
 
 .topbar button {
@@ -72,10 +78,21 @@ body {
   background: #e7dcc2;
   color: var(--color-ink);
   border-radius: 4px;
+  white-space: nowrap;
 }
 
 .topbar button:active {
   background: #d8c9a4;
+}
+
+.topbar button.next-turn {
+  background: var(--color-border);
+  color: #f2e8cf;
+  font-weight: 700;
+}
+
+.topbar button.next-turn:active {
+  background: #5a4e40;
 }
 
 /* 지도 */

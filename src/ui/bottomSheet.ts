@@ -49,6 +49,14 @@ export function createBottomSheet(container: HTMLElement, handlers: BottomSheetH
     return heroesData.heroes.filter((h) => state.heroes[h.id]?.status === 'active' && state.heroes[h.id]?.location === regionId);
   }
 
+  function makeCancelBtn(): HTMLButtonElement {
+    const cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.textContent = '출진 취소';
+    cancelBtn.addEventListener('click', () => handlers.onMarchCancel());
+    return cancelBtn;
+  }
+
   function show(regionId: RegionId, state: GameState, marchFrom: RegionId | null) {
     if (marchFrom !== selectedMarchFrom) {
       selectedMarchHeroIds = [];
@@ -130,6 +138,15 @@ export function createBottomSheet(container: HTMLElement, handlers: BottomSheetH
         sliderRow.append(troopsSlider, troopsReadout);
         panel.appendChild(sliderRow);
 
+        const note = document.createElement('div');
+        note.textContent = '인접 지역을 눌러 목표를 고른다.';
+        note.style.fontSize = '12px';
+        note.style.opacity = '0.7';
+        panel.appendChild(note);
+
+        // 취소 버튼은 영웅 목록이 길어도 스크롤 없이 바로 보이도록 목록보다 먼저 둔다.
+        panel.appendChild(makeCancelBtn());
+
         const availableHeroes = heroesStationedAt(state, marchFrom).filter((h) => h.faction === state.playerFaction);
         if (availableHeroes.length) {
           const heroPicker = document.createElement('div');
@@ -152,11 +169,6 @@ export function createBottomSheet(container: HTMLElement, handlers: BottomSheetH
           }
           panel.appendChild(heroPicker);
         }
-        const note = document.createElement('div');
-        note.textContent = '인접 지역을 눌러 목표를 고른다.';
-        note.style.fontSize = '12px';
-        note.style.opacity = '0.7';
-        panel.appendChild(note);
       } else if (isMarchTarget) {
         const troops = Math.min(selectedMarchTroops, sourceGarrison);
         const summary = document.createElement('div');
@@ -172,13 +184,8 @@ export function createBottomSheet(container: HTMLElement, handlers: BottomSheetH
           handlers.onMarchTarget(regionId, troops, selectedMarchHeroIds);
         });
         panel.appendChild(btn);
+        panel.appendChild(makeCancelBtn());
       }
-
-      const cancelBtn = document.createElement('button');
-      cancelBtn.type = 'button';
-      cancelBtn.textContent = '출진 취소';
-      cancelBtn.addEventListener('click', () => handlers.onMarchCancel());
-      panel.appendChild(cancelBtn);
       return;
     }
 

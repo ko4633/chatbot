@@ -28,6 +28,9 @@ export function createTopbar(
   const spacer = document.createElement('span');
   spacer.className = 'spacer';
 
+  const buttonGroup = document.createElement('div');
+  buttonGroup.className = 'topbar-buttons';
+
   const heroesBtn = document.createElement('button');
   heroesBtn.type = 'button';
   heroesBtn.textContent = '영웅';
@@ -40,10 +43,12 @@ export function createTopbar(
 
   const nextTurnBtn = document.createElement('button');
   nextTurnBtn.type = 'button';
+  nextTurnBtn.className = 'next-turn';
   nextTurnBtn.textContent = '다음 계절';
   nextTurnBtn.addEventListener('click', onNextTurn);
 
-  container.append(dateEl, goldEl, foodEl, cohesionEl, spacer, heroesBtn, chronicleBtn, nextTurnBtn);
+  buttonGroup.append(heroesBtn, chronicleBtn, nextTurnBtn);
+  container.append(dateEl, goldEl, foodEl, cohesionEl, spacer, buttonGroup);
 
   function update(state: GameState) {
     const faction = factionsData.factions.find((f) => f.id === state.playerFaction);

@@ -167,6 +167,25 @@ const bottomSheet = createBottomSheet(bottomSheetEl, {
   }
 });
 
+// 지도 초기 확대 계산이 실제 크기를 읽기 전에 상단바가 먼저 (두 줄로 접힐 수도 있는) 자기 높이를
+// 확정 짓도록, 지도보다 먼저 만든다.
+const topbar = createTopbar(
+  topbarEl,
+  () => {
+    state = advanceTurn(state);
+    persistAndRefresh();
+  },
+  () => {
+    chroniclePanel.toggle();
+  },
+  () => {
+    heroPanel.toggle();
+  }
+);
+// 지도가 상단바의 최종 높이(두 줄로 접힐 수도 있음)를 보고 초기 확대를 계산하도록, 실제 글자를
+// 먼저 채워 둔다(마지막 진짜 refresh()가 다시 그려도 무해하다).
+topbar.update(state);
+
 const mapView = createMapView(mapEl, factionColors, (regionId) => {
   if (marchFrom) {
     const isValidTarget = regionsData.regions
@@ -181,20 +200,6 @@ const mapView = createMapView(mapEl, factionColors, (regionId) => {
   selectedRegion = regionId;
   refresh();
 });
-
-const topbar = createTopbar(
-  topbarEl,
-  () => {
-    state = advanceTurn(state);
-    persistAndRefresh();
-  },
-  () => {
-    chroniclePanel.toggle();
-  },
-  () => {
-    heroPanel.toggle();
-  }
-);
 
 if (existingSave) {
   refresh();
