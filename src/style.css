@@ -158,6 +158,11 @@ body {
   font-size: 14px;
 }
 
+/* 출진 중(병력 슬라이더·영웅 선택)에는 정보가 많아 42vh로는 다 안 보이므로 더 넓게 연다. */
+.bottom-sheet.marching {
+  max-height: 78vh;
+}
+
 .bottom-sheet.empty {
   color: #6f6250;
   font-style: normal;

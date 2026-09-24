@@ -67,7 +67,9 @@ export function createBottomSheet(container: HTMLElement, handlers: BottomSheetH
     const staticRegion = byId[regionId];
     const dynamic = state.regions[regionId];
     if (!staticRegion || !dynamic) return;
-    container.className = 'bottom-sheet';
+    // 출진 중에는 병력 슬라이더·영웅 선택까지 다 보여야 해서 시트를 더 넓게 연다
+    // (좁으면 영웅 체크박스가 화면 아래로 잘려 안 보이는 문제가 있었다).
+    container.className = marchFrom ? 'bottom-sheet marching' : 'bottom-sheet';
 
     const owner = factionById[dynamic.owner];
     const adjacentNames = staticRegion.adjacent
@@ -139,15 +141,8 @@ export function createBottomSheet(container: HTMLElement, handlers: BottomSheetH
         sliderRow.append(troopsSlider, troopsReadout);
         panel.appendChild(sliderRow);
 
-        const note = document.createElement('div');
-        note.textContent = '인접 지역을 눌러 목표를 고른다.';
-        note.style.fontSize = '12px';
-        note.style.opacity = '0.7';
-        panel.appendChild(note);
-
-        // 취소 버튼은 영웅 목록이 길어도 스크롤 없이 바로 보이도록 목록보다 먼저 둔다.
-        panel.appendChild(makeCancelBtn());
-
+        // 영웅 선택은 병력 슬라이더 바로 아래, 시트 상단 가까이에 둔다
+        // (시트 하단으로 밀리면 화면이 작은 폰에서 체크박스가 안 보여 고를 수 없었다).
         const availableHeroes = heroesStationedAt(state, marchFrom).filter((h) => h.faction === state.playerFaction);
         if (availableHeroes.length) {
           const heroPicker = document.createElement('div');
@@ -170,6 +165,14 @@ export function createBottomSheet(container: HTMLElement, handlers: BottomSheetH
           }
           panel.appendChild(heroPicker);
         }
+
+        const note = document.createElement('div');
+        note.textContent = '인접 지역을 눌러 목표를 고른다.';
+        note.style.fontSize = '12px';
+        note.style.opacity = '0.7';
+        panel.appendChild(note);
+
+        panel.appendChild(makeCancelBtn());
       } else if (isMarchTarget) {
         const troops = Math.min(selectedMarchTroops, sourceGarrison);
         const summary = document.createElement('div');
