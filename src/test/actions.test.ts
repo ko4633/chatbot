@@ -35,6 +35,27 @@ describe('conscriptAction (징병: 지역 pop등급×1000명, 봄·여름만)', 
     const result = conscriptAction(state, 'silla', 'seorabeol');
     expect(result.ok).toBe(false);
   });
+
+  it('refuses conscription on a region currently under siege (포위된 성은 새로 징병할 수 없다)', () => {
+    let state = createInitialState('silla', 1);
+    state = {
+      ...state,
+      sieges: [
+        {
+          id: 'seorabeol-baekje-0',
+          region: 'seorabeol',
+          attacker: 'baekje',
+          defender: 'silla',
+          attackerTroops: 5000,
+          attackerHeroes: [],
+          foodTurnsRemaining: 10,
+          startedTurn: 0
+        }
+      ]
+    };
+    const result = conscriptAction(state, 'silla', 'seorabeol');
+    expect(result.ok).toBe(false);
+  });
 });
 
 describe('domesticAction / fortifyAction (내정 2턴, 축성 3턴)', () => {

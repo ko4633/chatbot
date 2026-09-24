@@ -72,6 +72,9 @@ export function conscriptAction(state: GameState, faction: FactionId, regionId: 
   if (!balanceData.turn.conscriptionSeasons.includes(state.season)) {
     return { ok: false, reason: '봄과 여름에만 징병할 수 있다.' };
   }
+  if (state.sieges.some((s) => s.region === regionId)) {
+    return { ok: false, reason: '포위당한 지역은 새로 징병할 수 없다.' };
+  }
 
   const recruited = region.pop * balanceData.turn.conscriptionPopMultiplier;
   const name = regionsData.regions.find((r) => r.id === regionId)?.name ?? regionId;
