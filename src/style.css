@@ -657,13 +657,10 @@ body {
   font-family: var(--font-ui);
 }
 
-.faction-select-swatch {
+.flag-icon {
   flex: 0 0 auto;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: var(--faction-color);
-  border: 1px solid var(--color-border);
+  vertical-align: middle;
+  margin-right: 6px;
 }
 
 .faction-select-name {
@@ -676,4 +673,55 @@ body {
 .faction-select-notes {
   font-size: 12px;
   opacity: 0.75;
+}
+
+/* 치트 패널 (` 키로 여닫음, 설계 밖 개발용 도구) */
+.cheat-panel {
+  position: fixed;
+  bottom: 12px;
+  right: 12px;
+  z-index: 45;
+  width: min(260px, 80vw);
+  background: var(--color-land);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 12px 14px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.cheat-panel.hidden {
+  display: none;
+}
+
+.cheat-panel h3 {
+  margin: 0 0 4px 0;
+  font-family: var(--font-chronicle);
+  font-size: 16px;
+}
+
+.cheat-panel p {
+  margin: 0 0 8px 0;
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.cheat-panel-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cheat-panel-buttons button {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  padding: 6px 10px;
+  border: 1px solid var(--color-border);
+  background: #e7dcc2;
+  color: var(--color-ink);
+  border-radius: 4px;
+  text-align: left;
+}
+
+.cheat-panel-buttons button:active {
+  background: #d8c9a4;
 }

@@ -1,5 +1,6 @@
 import { factionsData } from '../core/data';
 import type { FactionId } from '../core/types';
+import { flagIconHtml } from './flagIcon';
 
 export interface FactionSelectHandle {
   show(onSelect: (factionId: FactionId) => void): void;
@@ -33,7 +34,7 @@ export function createFactionSelect(container: HTMLElement): FactionSelectHandle
       btn.className = 'faction-select-option';
       btn.style.setProperty('--faction-color', f.color);
       btn.innerHTML = `
-        <span class="faction-select-swatch"></span>
+        ${flagIconHtml(f.color, f.name[0])}
         <span class="faction-select-name">${f.name}</span>
         <span class="faction-select-notes">${f.notes ?? ''}</span>
       `;

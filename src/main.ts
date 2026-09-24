@@ -1,5 +1,6 @@
 import './style.css';
 import { conscriptAction, diplomacyAction, domesticAction, fortifyAction, marchAction } from './core/actions';
+import { balanceData } from './core/balance';
 import { factionsData, regionsData } from './core/data';
 import { resolveEventChoice } from './core/events';
 import { advanceTurn, createInitialState } from './core/state';
@@ -7,6 +8,7 @@ import type { ActionResult } from './core/actions';
 import type { GameState, RegionId } from './core/types';
 import { createMapView } from './map/svgMap';
 import { createBottomSheet } from './ui/bottomSheet';
+import { createCheatPanel } from './ui/cheatPanel';
 import { createChroniclePanel } from './ui/chroniclePanel';
 import { createEndingBanner } from './ui/endingBanner';
 import { createEventPopup } from './ui/eventPopup';
@@ -35,6 +37,7 @@ const heroPanelEl = document.createElement('div');
 const endingBannerEl = document.createElement('div');
 const historyCompareEl = document.createElement('div');
 const factionSelectEl = document.createElement('div');
+const cheatPanelEl = document.createElement('div');
 
 app.append(
   topbarEl,
@@ -46,7 +49,8 @@ app.append(
   heroPanelEl,
   endingBannerEl,
   historyCompareEl,
-  factionSelectEl
+  factionSelectEl,
+  cheatPanelEl
 );
 
 const existingSave = loadFromLocalStorage();
@@ -118,6 +122,50 @@ function persistAndRefresh() {
   saveToLocalStorage(state);
   refresh();
 }
+
+// 치트 패널(사용자 요청, 설계 밖 개발용 도구). 코어 공식은 그대로 두고 state만 직접 조작한다.
+createCheatPanel(cheatPanelEl, {
+  onAddGold(amount) {
+    const fs = state.factions[state.playerFaction];
+    if (!fs) return;
+    state = { ...state, factions: { ...state.factions, [state.playerFaction]: { ...fs, gold: fs.gold + amount } } };
+    persistAndRefresh();
+  },
+  onAddFood(amount) {
+    const fs = state.factions[state.playerFaction];
+    if (!fs) return;
+    state = { ...state, factions: { ...state.factions, [state.playerFaction]: { ...fs, food: fs.food + amount } } };
+    persistAndRefresh();
+  },
+  onMaxCohesion() {
+    const fs = state.factions[state.playerFaction];
+    if (!fs) return;
+    state = {
+      ...state,
+      factions: { ...state.factions, [state.playerFaction]: { ...fs, cohesion: balanceData.cohesion.max } }
+    };
+    persistAndRefresh();
+  },
+  onRestoreActionPoints() {
+    const fs = state.factions[state.playerFaction];
+    if (!fs) return;
+    state = {
+      ...state,
+      factions: { ...state.factions, [state.playerFaction]: { ...fs, actionPoints: balanceData.turn.actionsPerFaction } }
+    };
+    persistAndRefresh();
+  },
+  onAddGarrisonToSelected(amount) {
+    if (!selectedRegion) {
+      resultPopup.show('치트', ['먼저 지역을 하나 선택해라.']);
+      return;
+    }
+    const region = state.regions[selectedRegion];
+    if (!region) return;
+    state = { ...state, regions: { ...state.regions, [selectedRegion]: { ...region, garrison: region.garrison + amount } } };
+    persistAndRefresh();
+  }
+});
 
 function handleResult(result: ActionResult, chronicleCountBefore: number) {
   if (!result.ok) {

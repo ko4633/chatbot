@@ -3,6 +3,7 @@ import { factionsData, heroesData, regionsData } from '../core/data';
 import { getRelationValue } from '../core/events';
 import type { DiplomacyKind } from '../core/actions';
 import type { FactionId, GameState, HeroId, RegionId } from '../core/types';
+import { flagIconHtml } from './flagIcon';
 
 export interface BottomSheetHandlers {
   onConscript(regionId: RegionId): void;
@@ -85,7 +86,7 @@ export function createBottomSheet(container: HTMLElement, handlers: BottomSheetH
     container.innerHTML = `
       <h2>${staticRegion.name}${staticRegion.modernName ? `<small> (${staticRegion.modernName})</small>` : ''}</h2>
       <dl>
-        <dt>세력</dt><dd>${owner?.name ?? dynamic.owner}</dd>
+        <dt>세력</dt><dd>${owner ? flagIconHtml(owner.color, owner.name[0]) : ''}${owner?.name ?? dynamic.owner}</dd>
         <dt>지형</dt><dd>${TERRAIN_LABEL[staticRegion.terrain] ?? staticRegion.terrain}</dd>
         <dt>수비</dt><dd>${dynamic.garrison.toLocaleString()}</dd>
         ${isPlayerOwned ? `<dt>출진 가능 병력</dt><dd>${dynamic.garrison.toLocaleString()}</dd>` : ''}

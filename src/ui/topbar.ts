@@ -1,6 +1,7 @@
 import { factionsData } from '../core/data';
 import type { GameState } from '../core/types';
 import { SEASON_LABEL } from '../core/types';
+import { flagIconHtml } from './flagIcon';
 
 export interface TopbarHandle {
   update(state: GameState): void;
@@ -53,7 +54,8 @@ export function createTopbar(
   function update(state: GameState) {
     const faction = factionsData.factions.find((f) => f.id === state.playerFaction);
     const fs = state.factions[state.playerFaction];
-    dateEl.textContent = `${state.year}년 ${SEASON_LABEL[state.season]} · ${faction?.name ?? state.playerFaction}`;
+    const flag = faction ? flagIconHtml(faction.color, faction.name[0]) : '';
+    dateEl.innerHTML = `${flag}${state.year}년 ${SEASON_LABEL[state.season]} · ${faction?.name ?? state.playerFaction}`;
     goldEl.innerHTML = `<span class="label">금</span> ${fs?.gold ?? 0}`;
     foodEl.innerHTML = `<span class="label">식량</span> ${fs?.food ?? 0}`;
     cohesionEl.innerHTML = `<span class="label">결속</span> ${fs?.cohesion ?? 0}`;
