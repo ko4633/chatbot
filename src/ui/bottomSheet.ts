@@ -40,8 +40,9 @@ export function createBottomSheet(container: HTMLElement, handlers: BottomSheetH
 
   const byId = Object.fromEntries(regionsData.regions.map((r) => [r.id, r]));
   const factionById = Object.fromEntries(factionsData.factions.map((f) => [f.id, f]));
-  // 출진 중 고른 영웅(최대 3명, 설계 "출진(인접 지역, 영웅 최대 3명)"). 출진 시작 지역이 바뀌면 비운다.
+  // 출진 중 고른 병력·영웅(최대 3명, 설계 "출진(인접 지역, 영웅 최대 3명)"). 출진 시작 지역이 바뀌면 비운다.
   let selectedMarchHeroIds: HeroId[] = [];
+  let selectedMarchTroops: number | null = null;
   let selectedMarchFrom: RegionId | null = null;
 
   function heroesStationedAt(state: GameState, regionId: RegionId) {
@@ -51,6 +52,7 @@ export function createBottomSheet(container: HTMLElement, handlers: BottomSheetH
   function show(regionId: RegionId, state: GameState, marchFrom: RegionId | null) {
     if (marchFrom !== selectedMarchFrom) {
       selectedMarchHeroIds = [];
+      selectedMarchTroops = null;
       selectedMarchFrom = marchFrom;
     }
     const staticRegion = byId[regionId];
@@ -96,40 +98,37 @@ export function createBottomSheet(container: HTMLElement, handlers: BottomSheetH
     if (!panel) return;
 
     if (marchFrom) {
-      if (isMarchTarget) {
-        const sourceGarrison = state.regions[marchFrom]?.garrison ?? 0;
-        const sourceName = byId[marchFrom]?.name ?? marchFrom;
-
-        const availableNote = document.createElement('div');
-        availableNote.className = 'march-available-note';
-        availableNote.textContent = `${sourceName}의 가용 병력: ${sourceGarrison.toLocaleString()}`;
-        panel.appendChild(availableNote);
-
-        const troopsInput = document.createElement('input');
-        troopsInput.type = 'number';
-        troopsInput.min = '1';
-        troopsInput.max = String(sourceGarrison);
-        troopsInput.step = '100';
-        troopsInput.value = String(Math.min(1000, sourceGarrison));
-        troopsInput.className = 'march-troops-input';
-        panel.appendChild(troopsInput);
-
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.textContent = `이곳으로 출진`;
-        btn.addEventListener('click', () => {
-          const troops = Number(troopsInput.value);
-          if (!Number.isFinite(troops) || troops <= 0) return;
-          handlers.onMarchTarget(regionId, Math.min(troops, sourceGarrison), selectedMarchHeroIds);
-        });
-        panel.appendChild(btn);
+      const sourceGarrison = state.regions[marchFrom]?.garrison ?? 0;
+      if (selectedMarchTroops === null) {
+        selectedMarchTroops = Math.min(1000, sourceGarrison);
       }
-      const cancelBtn = document.createElement('button');
-      cancelBtn.type = 'button';
-      cancelBtn.textContent = '출진 취소';
-      cancelBtn.addEventListener('click', () => handlers.onMarchCancel());
-      panel.appendChild(cancelBtn);
+
       if (isMarching) {
+        // 출진 시작 지역: 여기서 가용 병력을 보며 보낼 병력(레버)과 동행할 영웅을 고른다.
+        const step = Math.max(1, Math.min(100, sourceGarrison));
+
+        const sliderRow = document.createElement('div');
+        sliderRow.className = 'march-troops-slider-row';
+
+        const troopsSlider = document.createElement('input');
+        troopsSlider.type = 'range';
+        troopsSlider.min = '0';
+        troopsSlider.max = String(sourceGarrison);
+        troopsSlider.step = String(step);
+        troopsSlider.value = String(selectedMarchTroops);
+        troopsSlider.className = 'march-troops-slider';
+
+        const troopsReadout = document.createElement('span');
+        troopsReadout.className = 'march-troops-readout';
+        troopsReadout.textContent = `${selectedMarchTroops.toLocaleString()} / ${sourceGarrison.toLocaleString()}`;
+        troopsSlider.addEventListener('input', () => {
+          selectedMarchTroops = Number(troopsSlider.value);
+          troopsReadout.textContent = `${selectedMarchTroops.toLocaleString()} / ${sourceGarrison.toLocaleString()}`;
+        });
+
+        sliderRow.append(troopsSlider, troopsReadout);
+        panel.appendChild(sliderRow);
+
         const availableHeroes = heroesStationedAt(state, marchFrom).filter((h) => h.faction === state.playerFaction);
         if (availableHeroes.length) {
           const heroPicker = document.createElement('div');
@@ -157,7 +156,28 @@ export function createBottomSheet(container: HTMLElement, handlers: BottomSheetH
         note.style.fontSize = '12px';
         note.style.opacity = '0.7';
         panel.appendChild(note);
+      } else if (isMarchTarget) {
+        const troops = Math.min(selectedMarchTroops, sourceGarrison);
+        const summary = document.createElement('div');
+        summary.className = 'march-available-note';
+        summary.textContent = `보낼 병력: ${troops.toLocaleString()}${selectedMarchHeroIds.length ? ` · 영웅 ${selectedMarchHeroIds.length}명` : ''}`;
+        panel.appendChild(summary);
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = `이곳으로 출진`;
+        btn.addEventListener('click', () => {
+          if (troops <= 0) return;
+          handlers.onMarchTarget(regionId, troops, selectedMarchHeroIds);
+        });
+        panel.appendChild(btn);
       }
+
+      const cancelBtn = document.createElement('button');
+      cancelBtn.type = 'button';
+      cancelBtn.textContent = '출진 취소';
+      cancelBtn.addEventListener('click', () => handlers.onMarchCancel());
+      panel.appendChild(cancelBtn);
       return;
     }
 
