@@ -56,8 +56,8 @@ export function createTopbar(
     const fs = state.factions[state.playerFaction];
     const flag = faction ? flagIconHtml(faction.color, faction.name[0]) : '';
     dateEl.innerHTML = `${flag}${state.year}년 ${SEASON_LABEL[state.season]} · ${faction?.name ?? state.playerFaction}`;
-    goldEl.innerHTML = `<span class="label">금</span> ${fs?.gold ?? 0}`;
-    foodEl.innerHTML = `<span class="label">식량</span> ${fs?.food ?? 0}`;
+    goldEl.innerHTML = `<span class="label">금</span> ${Math.round(fs?.gold ?? 0).toLocaleString()}`;
+    foodEl.innerHTML = `<span class="label">식량</span> ${Math.round(fs?.food ?? 0).toLocaleString()}`;
     cohesionEl.innerHTML = `<span class="label">결속</span> ${fs?.cohesion ?? 0}`;
   }
 
