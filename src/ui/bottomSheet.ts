@@ -98,6 +98,13 @@ export function createBottomSheet(container: HTMLElement, handlers: BottomSheetH
     if (marchFrom) {
       if (isMarchTarget) {
         const sourceGarrison = state.regions[marchFrom]?.garrison ?? 0;
+        const sourceName = byId[marchFrom]?.name ?? marchFrom;
+
+        const availableNote = document.createElement('div');
+        availableNote.className = 'march-available-note';
+        availableNote.textContent = `${sourceName}의 가용 병력: ${sourceGarrison.toLocaleString()}`;
+        panel.appendChild(availableNote);
+
         const troopsInput = document.createElement('input');
         troopsInput.type = 'number';
         troopsInput.min = '1';

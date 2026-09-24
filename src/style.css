@@ -198,6 +198,13 @@ body {
   color: #f2e8cf;
 }
 
+.march-available-note {
+  width: 100%;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
 .march-troops-input {
   font-family: var(--font-ui);
   font-size: 13px;
