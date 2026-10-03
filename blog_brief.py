@@ -48,6 +48,23 @@ ENDED_MARKERS = [
     "営業終了", "開催終了", "終売", "完売しました", "閉幕",
 ]
 TRACKING_PARAMS = {"fbclid", "gclid", "yclid", "ref"}
+# 기사 한 건이 아니라 목록·검색 페이지인 URL 패턴 (근거 링크로 부적합)
+LISTING_URL_PATTERNS = [
+    r"/topics/keywords/", r"/event/list/", r"/area/", r"/summary/", r"/search", r"/tag/", r"/category/",
+]
+# 지금 계절에 어울리지 않는 것을 나타내는 표현 (제목·요약에서 찾음)
+_SUMMER = ["かき氷", "ビアガーデン", "花火", "浴衣", "流しそうめん", "納涼", "夏祭り", "冷やし中華",
+           "빙수", "불꽃놀이", "유카타", "비어가든"]
+_WINTER = ["鍋", "おでん", "焼き芋", "こたつ", "나베", "어묵", "군고구마"]
+_SPRING = ["花見", "桜まつり", "さくらまつり", "벚꽃"]
+_AUTUMN = ["紅葉", "ハロウィン", "月見", "단풍", "할로윈"]
+_XMAS = ["クリスマス", "크리스마스"]
+OFF_SEASON_WORDS = {
+    "봄(春)": _WINTER + _AUTUMN + _XMAS,
+    "여름(夏)": _WINTER + _SPRING + _AUTUMN + _XMAS,
+    "가을(秋)": _SUMMER + _SPRING,
+    "겨울(冬)": _SUMMER + _SPRING + _AUTUMN,
+}
 
 
 # ---------------------------------------------------------------- 날짜·계절
@@ -72,6 +89,48 @@ def parse_date(value) -> dt.date | None:
         return dt.date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
     except ValueError:
         return None
+
+
+_PERIOD_DATE = re.compile(
+    r"(?:(\d{4})\s*[年/.\-]\s*)?(\d{1,2})\s*[月/.\-]\s*(\d{1,2})(?!\d)|(?<!\d)(\d{1,2})\s*日(?!間)"
+)
+
+
+def period_dates(period, today: dt.date) -> tuple[dt.date | None, dt.date | None]:
+    """기간 원문(예: 9/28(月)～10/4(日), 2026年10月16日～18日)에서 시작·종료일을 읽는다.
+
+    연도가 없으면 올해로 보되, 반년 넘게 지난 날짜면 내년으로 본다.
+    """
+    if not period or not isinstance(period, str):
+        return None, None
+    dates: list[dt.date] = []
+    year = month = None
+    for m in _PERIOD_DATE.finditer(period):
+        if m.group(2):
+            year = int(m.group(1)) if m.group(1) else year
+            month, day = int(m.group(2)), int(m.group(3))
+        elif month:
+            day = int(m.group(4))
+        else:
+            continue
+        y = year or today.year
+        try:
+            d = dt.date(y, month, day)
+        except ValueError:
+            continue
+        if not year and (today - d).days > 183:
+            d = d.replace(year=y + 1)
+        if dates and d < dates[-1] and not year:
+            d = d.replace(year=d.year + 1)  # 12/20～1/10 처럼 해를 넘기는 기간
+        dates.append(d)
+    if not dates:
+        return None, None
+    return dates[0], dates[-1]
+
+
+def off_season_hits(raw: dict, season: str) -> list[str]:
+    text = " ".join(str(raw.get(k) or "") for k in ("title_ja", "title_ko", "category", "summary"))
+    return [w for w in OFF_SEASON_WORDS.get(season, []) if w in text]
 
 
 # ---------------------------------------------------------------- Claude 검색
@@ -281,11 +340,22 @@ def fetch_page(url: str) -> dict:
     return result
 
 
+# 어느 페이지에나 나오는 흔한 말은 원제 키워드에서 뺀다 (내용 불일치를 놓치지 않도록)
+GENERIC_WORDS = {
+    "pop", "up", "popup", "pop-up", "shop", "store", "in", "by", "the", "of", "at", "and", "event", "tokyo",
+    "ポップアップ", "ポップアップストア", "ポップアップショップ", "ストア", "ショップ", "イベント", "開催",
+    "期間限定", "限定", "オープン", "東京", "新作", "発売", "ポップアップイベント", "にて",
+}
+
+
 def title_keywords(title_ja: str | None) -> list[str]:
     if not title_ja:
         return []
     parts = re.split(r"[\s　「」『』【】（）()\[\]・、。,.!！?？:：/／\-‐―〜～×&＆\"'“”]+", title_ja)
-    return [p for p in parts if len(p) >= 2][:8]
+    return [
+        p for p in parts
+        if len(p) >= (3 if p.isascii() else 2) and p.lower() not in GENERIC_WORDS and not re.fullmatch(r"\d+", p)
+    ][:8]
 
 
 def page_text(soup: BeautifulSoup) -> str:
@@ -306,9 +376,13 @@ def check_link(url: str | None, search_set: set[str], keywords: list[str]) -> di
     warnings = []
     if not info["in_search_results"]:
         warnings.append("web_search 결과에 없던 URL (생성/변형 의심)")
-    if not page["ok"]:
+    if page["status"] in (401, 403, 429):
+        warnings.append(f"자동 접속 차단 (HTTP {page['status']}, 봇 차단일 수 있음 — 브라우저로 직접 확인)")
+    elif not page["ok"]:
         reason = f"HTTP {page['status']}" if page["status"] else (page["error"] or "접속 실패")
         warnings.append(f"접속 실패: {reason}")
+    if any(re.search(pat, urlsplit(page["final_url"] or url).path) for pat in LISTING_URL_PATTERNS):
+        warnings.append("기사가 아닌 목록·검색 페이지 (개별 기사 URL 필요)")
 
     info["og_image"] = None
     info["page_title"] = None
@@ -327,8 +401,11 @@ def check_link(url: str | None, search_set: set[str], keywords: list[str]) -> di
             info["keyword_hits"] = hits
             if not hits:
                 warnings.append("페이지 본문에서 원제 키워드를 찾지 못함 (내용 불일치 가능)")
+        title_ended = [m for m in ENDED_MARKERS if m in (info["page_title"] or "")]
+        if title_ended:
+            info["title_ended"] = title_ended
         ended = [m for m in ENDED_MARKERS if m in text]
-        if ended:
+        if ended and not title_ended:
             info["ended_markers"] = ended
             warnings.append("페이지에 종료 표현 감지: " + ", ".join(ended[:3]) + " (직접 확인 필요)")
     info["warnings"] = warnings
@@ -514,10 +591,12 @@ def render_md(meta: dict, items: list[dict]) -> str:
 
 def process_items(raw_items: list[dict], search_urls: set[str], today: dt.date, out_dir: Path):
     search_set = {normalize_url(u) for u in search_urls}
+    season = season_of(today.month)
     items, excluded = [], []
     for raw in raw_items:
         title = raw.get("title_ko") or raw.get("title_ja") or "(제목 없음)"
-        end = parse_date(raw.get("end_date"))
+        p_start, p_end = period_dates(raw.get("period"), today)
+        end = parse_date(raw.get("end_date")) or p_end
         if end and end < today:
             excluded.append({"title": title, "reason": f"종료일 {end.isoformat()}이 오늘 이전"})
             continue
@@ -530,17 +609,30 @@ def process_items(raw_items: list[dict], search_urls: set[str], today: dt.date, 
             "source": check_link(raw.get("source_url"), search_set, kws),
             "official": check_link(raw.get("official_url"), search_set, kws),
         }
+        title_ended = links["source"].get("title_ended") or links["official"].get("title_ended")
+        if title_ended:
+            excluded.append({"title": title, "reason": f"원문 페이지 제목에 종료 표현: {', '.join(title_ended)}"})
+            continue
         warnings = []
+        off = off_season_hits(raw, season)
+        if off:
+            warnings.append(f"지금 계절({season})과 안 맞을 수 있음: {', '.join(off)}")
         for key, label in (("source", "원문"), ("official", "공식")):
             for w in links[key].get("warnings") or []:
                 warnings.append(f"{label} 링크: {w}")
-        start = parse_date(raw.get("start_date"))
+        start = parse_date(raw.get("start_date")) or p_start
         if start and (start - today).days > 60:
             warnings.append(f"시작일이 {start.isoformat()}로 두 달 이상 남음")
+        if end and (end - today).days <= 2:
+            warnings.append(f"종료 임박: {end.isoformat()}까지")
         if not raw.get("period") and not end:
             warnings.append("기간 정보 없음 (상시 여부 직접 확인)")
+        elif raw.get("period") and not end and not start:
+            warnings.append(f"기간 표기에서 날짜를 읽지 못함: {raw['period']} (직접 확인)")
 
         item = dict(raw)
+        item["start_date"] = start.isoformat() if start else raw.get("start_date")
+        item["end_date"] = end.isoformat() if end else raw.get("end_date")
         item["links"] = links
         item["warnings"] = warnings
         item["maps_url"] = maps_link(raw.get("place_name"), raw.get("address"))
@@ -568,7 +660,7 @@ def link_stats(items: list[dict]) -> dict:
         for link in it["links"].values():
             if link.get("url"):
                 total += 1
-                if link.get("ok") and link.get("in_search_results"):
+                if link.get("ok") and link.get("in_search_results") and not link.get("warnings"):
                     ok += 1
     return {"total": total, "ok": ok}
 
